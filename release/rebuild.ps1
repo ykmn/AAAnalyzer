@@ -14,8 +14,8 @@ if (-not (Test-Path -LiteralPath $releaseFile)) {
 }
 
 $release = (Get-Content -LiteralPath $releaseFile -Raw).Trim()
-if ($release -notmatch '^(?<version>\d+\.\d{3})-(?<date>\d{4}-\d{2}\.\d{2})$') {
-    throw 'VERSION.txt must have the format VERSION-DATE, for example 0.001-2026-10.06.'
+if ($release -notmatch '^(?<version>\d+\.\d{3})\s-\s(?<date>\d{4}\.\d{2}\.\d{2})$') {
+    throw 'VERSION.txt must have the format VERSION - DATE, for example 0.001 - 2026.10.06.'
 }
 
 $version = $Matches.version
