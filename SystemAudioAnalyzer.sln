@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SystemAudioAnalyzer.Core.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SystemAudioAnalyzer.Diagnostic", "src\SystemAudioAnalyzer.Diagnostic\SystemAudioAnalyzer.Diagnostic.csproj", "{622ABD1F-4064-4E21-8903-D145E63663EB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SystemAudioAnalyzer.App", "src\SystemAudioAnalyzer.App\SystemAudioAnalyzer.App.csproj", "{E5B1E436-F092-4F58-9EF5-EA284B0CB7D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SystemAudioAnalyzer.App.Tests", "tests\SystemAudioAnalyzer.App.Tests\SystemAudioAnalyzer.App.Tests.csproj", "{E8084F17-26DA-4BAF-A526-E77FC76A2E8F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{622ABD1F-4064-4E21-8903-D145E63663EB}.Release|x64.Build.0 = Release|Any CPU
 		{622ABD1F-4064-4E21-8903-D145E63663EB}.Release|x86.ActiveCfg = Release|Any CPU
 		{622ABD1F-4064-4E21-8903-D145E63663EB}.Release|x86.Build.0 = Release|Any CPU
+		{E5B1E436-F092-4F58-9EF5-EA284B0CB7D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5B1E436-F092-4F58-9EF5-EA284B0CB7D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5B1E436-F092-4F58-9EF5-EA284B0CB7D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5B1E436-F092-4F58-9EF5-EA284B0CB7D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8084F17-26DA-4BAF-A526-E77FC76A2E8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8084F17-26DA-4BAF-A526-E77FC76A2E8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8084F17-26DA-4BAF-A526-E77FC76A2E8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8084F17-26DA-4BAF-A526-E77FC76A2E8F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,5 +77,7 @@ Global
 		{66E623FB-4B9A-4A64-A4CA-8AA3A99916C2} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D1AE209C-50C8-4CFF-A0E4-A28CC273D5BA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{622ABD1F-4064-4E21-8903-D145E63663EB} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{E5B1E436-F092-4F58-9EF5-EA284B0CB7D7} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{E8084F17-26DA-4BAF-A526-E77FC76A2E8F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
