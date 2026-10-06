@@ -8,7 +8,7 @@ public sealed class AsyncCommand(Func<Task> execute, Func<bool> canExecute) : IC
 
     public bool CanExecute(object? parameter) => canExecute();
 
-    public async void Execute(object? parameter) => await ExecuteAsync().ConfigureAwait(false);
+    public async void Execute(object? parameter) => await ExecuteAsync();
 
     public Task ExecuteAsync() => canExecute() ? execute() : Task.CompletedTask;
 

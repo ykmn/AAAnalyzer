@@ -139,7 +139,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             StatusText = "Запуск анализа…";
-            await _controller.StartAsync(selection).ConfigureAwait(false);
+            await _controller.StartAsync(selection);
             IsAnalyzing = true;
             StatusText = "Анализ выполняется.";
         }
@@ -154,7 +154,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            await _controller.StopAsync().ConfigureAwait(false);
+            await _controller.StopAsync();
             StatusText = "Анализ остановлен.";
         }
         catch (Exception exception)

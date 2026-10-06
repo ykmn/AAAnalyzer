@@ -46,6 +46,31 @@ public sealed class MainViewModelTests
         Assert.Equal(1, controller.StopCount);
     }
 
+    [Fact]
+    public async Task StartCommandResumesOnTheCapturedSynchronizationContext()
+    {
+        var previousContext = SynchronizationContext.Current;
+        var synchronizationContext = new RecordingSynchronizationContext();
+        SynchronizationContext.SetSynchronizationContext(synchronizationContext);
+        try
+        {
+            var controller = new DelayedAnalyzerController();
+            var viewModel = new MainViewModel(controller, [new OutputDeviceInfo("default", "Speakers", true)]);
+            var startTask = viewModel.StartCommand.ExecuteAsync();
+
+            controller.CompleteStart();
+            Assert.True(SpinWait.SpinUntil(() => synchronizationContext.PendingCount > 0, TimeSpan.FromSeconds(1)));
+            synchronizationContext.RunAll();
+            await startTask;
+
+            Assert.True(viewModel.IsAnalyzing);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 
@@ -75,5 +100,68 @@ public sealed class MainViewModelTests
 
         public void PublishState(AudioSourceState state) =>
             SourceStateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state));
+    }
+
+    private sealed class DelayedAnalyzerController : IAnalyzerController
+    {
+        private readonly TaskCompletionSource _startCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public event EventHandler<AnalysisFrame>? FrameAvailable;
+
+        public event EventHandler<AudioSourceStateChangedEventArgs>? SourceStateChanged;
+
+        public Task StartAsync(SourceSelection selection, CancellationToken cancellationToken = default) => _startCompletion.Task;
+
+        public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public void CompleteStart() => _startCompletion.SetResult();
+
+        public void PublishFrame(AnalysisFrame frame) => FrameAvailable?.Invoke(this, frame);
+
+        public void PublishState(AudioSourceState state) =>
+            SourceStateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state));
+    }
+
+    private sealed class RecordingSynchronizationContext : SynchronizationContext
+    {
+        private readonly Queue<(SendOrPostCallback Callback, object? State)> _callbacks = new();
+
+        public int PendingCount
+        {
+            get
+            {
+                lock (_callbacks)
+                {
+                    return _callbacks.Count;
+                }
+            }
+        }
+
+        public override void Post(SendOrPostCallback callback, object? state)
+        {
+            lock (_callbacks)
+            {
+                _callbacks.Enqueue((callback, state));
+            }
+        }
+
+        public void RunAll()
+        {
+            while (true)
+            {
+                (SendOrPostCallback Callback, object? State) work;
+                lock (_callbacks)
+                {
+                    if (_callbacks.Count == 0)
+                    {
+                        return;
+                    }
+
+                    work = _callbacks.Dequeue();
+                }
+
+                work.Callback(work.State);
+            }
+        }
     }
 }
