@@ -40,7 +40,11 @@ public sealed class AudioAnalysisEngineSourceTests
     {
         public event EventHandler<AudioSamplesAvailableEventArgs>? SamplesAvailable;
 
+        public event EventHandler<AudioSourceStateChangedEventArgs>? StateChanged;
+
         public event EventHandler<CaptureFaultedEventArgs>? Faulted;
+
+        public AudioSourceState State { get; private set; } = AudioSourceState.Stopped;
 
         public int StartCount { get; private set; }
 
@@ -65,5 +69,11 @@ public sealed class AudioAnalysisEngineSourceTests
 
         public void PublishFault(Exception exception) =>
             Faulted?.Invoke(this, new CaptureFaultedEventArgs(exception));
+
+        public void PublishState(AudioSourceState state)
+        {
+            State = state;
+            StateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state));
+        }
     }
 }

@@ -5,6 +5,7 @@ public sealed class AudioCaptureSource : IAudioSource
 {
     private readonly IAudioCapture _capture;
     private bool _disposed;
+    private AudioSourceState _state = AudioSourceState.Stopped;
 
     public AudioCaptureSource(IAudioCapture capture)
     {
@@ -15,13 +16,19 @@ public sealed class AudioCaptureSource : IAudioSource
 
     public event EventHandler<AudioSamplesAvailableEventArgs>? SamplesAvailable;
 
+    public event EventHandler<AudioSourceStateChangedEventArgs>? StateChanged;
+
     public event EventHandler<CaptureFaultedEventArgs>? Faulted;
+
+    public AudioSourceState State => _state;
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
+        SetState(AudioSourceState.Connecting);
         _capture.Start();
+        SetState(AudioSourceState.Running);
         return Task.CompletedTask;
     }
 
@@ -31,6 +38,7 @@ public sealed class AudioCaptureSource : IAudioSource
         if (!_disposed)
         {
             _capture.Stop();
+            SetState(AudioSourceState.Stopped);
         }
 
         return Task.CompletedTask;
@@ -54,7 +62,24 @@ public sealed class AudioCaptureSource : IAudioSource
         SamplesAvailable?.Invoke(this, eventArgs);
 
     private void ForwardFault(object? sender, CaptureFaultedEventArgs eventArgs) =>
+        HandleFault(eventArgs);
+
+    private void HandleFault(CaptureFaultedEventArgs eventArgs)
+    {
+        SetState(AudioSourceState.Faulted);
         Faulted?.Invoke(this, eventArgs);
+    }
+
+    private void SetState(AudioSourceState state)
+    {
+        if (_state == state)
+        {
+            return;
+        }
+
+        _state = state;
+        StateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state));
+    }
 
     private void ThrowIfDisposed()
     {

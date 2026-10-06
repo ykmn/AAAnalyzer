@@ -11,4 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\SystemAudioAnalyzer.Core\SystemAudioAnalyzer.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.10.1" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+  </ItemGroup>
 </Project>

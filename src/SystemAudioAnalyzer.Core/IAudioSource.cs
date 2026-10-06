@@ -5,7 +5,11 @@ public interface IAudioSource : IAsyncDisposable
 {
     event EventHandler<AudioSamplesAvailableEventArgs>? SamplesAvailable;
 
+    event EventHandler<AudioSourceStateChangedEventArgs>? StateChanged;
+
     event EventHandler<CaptureFaultedEventArgs>? Faulted;
+
+    AudioSourceState State { get; }
 
     Task StartAsync(CancellationToken cancellationToken = default);
 
