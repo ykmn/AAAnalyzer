@@ -37,6 +37,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."
 }
 
+$localeDirectories = Get-ChildItem -LiteralPath $outputDirectory -Directory |
+    Where-Object { $_.Name -match '^[a-z]{2}(-[A-Z]{2})?$' -and $_.Name -notin @('en', 'ru') }
+foreach ($localeDirectory in $localeDirectories) {
+    Remove-Item -LiteralPath $localeDirectory.FullName -Recurse -Force
+}
+
 $executable = Join-Path $outputDirectory 'AAAnalyzer.exe'
 $libVlc = Join-Path $outputDirectory ("libvlc\{0}\libvlc.dll" -f $RuntimeIdentifier)
 if (-not (Test-Path -LiteralPath $executable)) {
