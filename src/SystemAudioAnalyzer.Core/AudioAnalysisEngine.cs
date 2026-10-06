@@ -16,7 +16,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     private Channel<AudioSamplesAvailableEventArgs>? _samples;
     private Channel<AnalysisFrame>? _frames;
     private CancellationTokenSource? _cancellation;
-    private IAudioCapture? _capture;
+    private IAudioSource? _source;
     private Task? _processingTask;
     private DateTimeOffset _lastFrameTimestamp;
     private OutputDeviceInfo? _currentDevice;
@@ -56,48 +56,74 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
 
     public Task StartAsync(OutputDeviceInfo? device = null)
     {
-        EngineDiagnostic? diagnostic = null;
+        OutputDeviceInfo selectedDevice;
+        lock (_sync)
+        {
+            selectedDevice = device ?? _deviceProvider.GetDefaultDevice()
+                ?? throw new InvalidOperationException("No active audio output device is available.");
+        }
+
+        return StartAsync(new AudioCaptureSource(_captureFactory.Create(selectedDevice)), selectedDevice);
+    }
+
+    public Task StartAsync(IAudioSource source, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return StartAsync(source, device: null, cancellationToken);
+    }
+
+    private async Task StartAsync(IAudioSource source, OutputDeviceInfo? device, CancellationToken cancellationToken = default)
+    {
+        Channel<AudioSamplesAvailableEventArgs> samples;
+        Channel<AnalysisFrame> frames;
+        CancellationTokenSource cancellation;
         lock (_sync)
         {
             _stateMachine.BeginStarting();
-            try
+            samples = Channel.CreateBounded<AudioSamplesAvailableEventArgs>(new BoundedChannelOptions(8)
             {
-                var selectedDevice = device ?? _deviceProvider.GetDefaultDevice()
-                    ?? throw new InvalidOperationException("No active audio output device is available.");
-                _samples = Channel.CreateBounded<AudioSamplesAvailableEventArgs>(new BoundedChannelOptions(8)
-                {
-                    FullMode = BoundedChannelFullMode.Wait,
-                    SingleReader = true,
-                    SingleWriter = false,
-                });
-                _frames = Channel.CreateBounded<AnalysisFrame>(new BoundedChannelOptions(4)
-                {
-                    FullMode = BoundedChannelFullMode.DropOldest,
-                    SingleReader = false,
-                    SingleWriter = true,
-                });
-                _cancellation = new CancellationTokenSource();
-                _lastFrameTimestamp = DateTimeOffset.MinValue;
-                Interlocked.Exchange(ref _droppedBufferCount, 0);
-                _capture = _captureFactory.Create(selectedDevice);
-                _capture.SamplesAvailable += OnSamplesAvailable;
-                _capture.Faulted += OnCaptureFaulted;
-                _processingTask = ProcessSamplesAsync(_samples.Reader, _frames.Writer, _cancellation.Token);
-                _capture.Start();
-                _stateMachine.MarkRunning();
-                _currentDevice = selectedDevice;
-                diagnostic = CreateDiagnostic(EngineDiagnosticKind.Started, "Audio capture started.", selectedDevice);
-            }
-            catch
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = false,
+            });
+            frames = Channel.CreateBounded<AnalysisFrame>(new BoundedChannelOptions(4)
             {
-                _stateMachine.MarkFaulted();
-                throw;
-            }
+                FullMode = BoundedChannelFullMode.DropOldest,
+                SingleReader = false,
+                SingleWriter = true,
+            });
+            cancellation = new CancellationTokenSource();
+            _samples = samples;
+            _frames = frames;
+            _cancellation = cancellation;
+            _source = source;
+            _currentDevice = device;
+            _lastFrameTimestamp = DateTimeOffset.MinValue;
+            Interlocked.Exchange(ref _droppedBufferCount, 0);
+            source.SamplesAvailable += OnSamplesAvailable;
+            source.Faulted += OnCaptureFaulted;
+            _processingTask = ProcessSamplesAsync(samples.Reader, frames.Writer, cancellation.Token);
         }
 
-        PublishDiagnostic(diagnostic!);
+        try
+        {
+            await source.StartAsync(cancellationToken).ConfigureAwait(false);
+            lock (_sync)
+            {
+                _stateMachine.MarkRunning();
+            }
+        }
+        catch
+        {
+            lock (_sync)
+            {
+                _stateMachine.MarkFaulted();
+            }
 
-        return Task.CompletedTask;
+            throw;
+        }
+
+        PublishDiagnostic(CreateDiagnostic(EngineDiagnosticKind.Started, "Audio capture started.", device));
     }
 
     public async Task SwitchDeviceAsync(OutputDeviceInfo device)
@@ -115,7 +141,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
 
     public async Task StopAsync()
     {
-        IAudioCapture? capture;
+        IAudioSource? source;
         Task? processingTask;
         CancellationTokenSource? cancellation;
         Channel<AudioSamplesAvailableEventArgs>? samples;
@@ -130,24 +156,24 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             }
 
             _stateMachine.BeginStopping();
-            capture = _capture;
+            source = _source;
             processingTask = _processingTask;
             cancellation = _cancellation;
             samples = _samples;
             frames = _frames;
             stoppedDevice = _currentDevice;
-            _capture = null;
+            _source = null;
             _processingTask = null;
             _cancellation = null;
             _currentDevice = null;
         }
 
-        if (capture is not null)
+        if (source is not null)
         {
-            capture.SamplesAvailable -= OnSamplesAvailable;
-            capture.Faulted -= OnCaptureFaulted;
-            capture.Stop();
-            capture.Dispose();
+            source.SamplesAvailable -= OnSamplesAvailable;
+            source.Faulted -= OnCaptureFaulted;
+            await source.StopAsync().ConfigureAwait(false);
+            await source.DisposeAsync().ConfigureAwait(false);
         }
 
         samples?.Writer.TryComplete();
