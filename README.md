@@ -47,7 +47,7 @@
 SystemAudioAnalyzer.sln
 src/
   SystemAudioAnalyzer.Core/       # захват, преобразование и расчёты
-  SystemAudioAnalyzer.App/        # UI; создаётся после готовности Core
+  SystemAudioAnalyzer.App/        # WPF-интерфейс и источники WASAPI/LibVLC
 tests/
   SystemAudioAnalyzer.Core.Tests/ # модульные тесты алгоритмов и жизненного цикла
 ```
@@ -222,6 +222,28 @@ peak, стерео с разными уровнями и неполный пос
 ```powershell
 dotnet test SystemAudioAnalyzer.sln
 dotnet build SystemAudioAnalyzer.sln
+```
+
+## WPF-интерфейс
+
+Запуск GUI:
+
+```powershell
+dotnet run --project src/SystemAudioAnalyzer.App
+```
+
+В режиме **Устройство** приложение анализирует системный микс выбранного
+выхода через WASAPI loopback. В режиме **Поток** принимаются только
+`http://` и `https://` адреса Icecast либо HLS; Icecast запускается с коротким
+буфером, а HLS отображает буферизацию, так как фактическая задержка зависит от
+сегментов сервера. Waterfall состоит из двух одинаковых по ширине областей:
+L слева, R справа; при изменении окна обе области перерисовываются по новым
+координатам.
+
+Portable-сборка GUI:
+
+```powershell
+.\release\rebuild.ps1
 ```
 
 Показать устройства вывода:

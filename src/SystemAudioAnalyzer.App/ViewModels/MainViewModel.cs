@@ -8,19 +8,24 @@ namespace SystemAudioAnalyzer.App.ViewModels;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly IAnalyzerController _controller;
+    private readonly SynchronizationContext? _synchronizationContext;
     private SourceMode _selectedSourceMode;
     private OutputDeviceInfo? _selectedDevice;
     private string _streamUrl = string.Empty;
     private string _statusText = "Готов к анализу.";
     private bool _isAnalyzing;
+    private AnalysisFrame? _latestFrame;
 
     public MainViewModel(IAnalyzerController controller, IEnumerable<OutputDeviceInfo> devices)
     {
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
+        _synchronizationContext = SynchronizationContext.Current;
         Devices = new ReadOnlyCollection<OutputDeviceInfo>((devices ?? throw new ArgumentNullException(nameof(devices))).ToArray());
         _selectedDevice = Devices.FirstOrDefault(device => device.IsDefault) ?? Devices.FirstOrDefault();
         StartCommand = new AsyncCommand(StartAsync, () => CanStart);
         StopCommand = new AsyncCommand(StopAsync, () => IsAnalyzing);
+        _controller.FrameAvailable += OnFrameAvailable;
+        _controller.SourceStateChanged += OnSourceStateChanged;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -118,6 +123,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _statusText, value);
     }
 
+    public AnalysisFrame? LatestFrame
+    {
+        get => _latestFrame;
+        set => SetField(ref _latestFrame, value);
+    }
+
     private async Task StartAsync()
     {
         if (!TryCreateSelection(out var selection))
@@ -154,6 +165,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             IsAnalyzing = false;
         }
+    }
+
+    private void OnFrameAvailable(object? sender, AnalysisFrame frame) =>
+        RunOnUi(() => LatestFrame = frame);
+
+    private void OnSourceStateChanged(object? sender, AudioSourceStateChangedEventArgs eventArgs) =>
+        RunOnUi(() => StatusText = eventArgs.State switch
+        {
+            AudioSourceState.Connecting => "Подключение к источнику…",
+            AudioSourceState.Buffering => "Буферизация потока…",
+            AudioSourceState.Running => "Анализ выполняется.",
+            AudioSourceState.Faulted => "Ошибка источника. Можно повторить запуск.",
+            _ => "Анализ остановлен.",
+        });
+
+    private void RunOnUi(Action action)
+    {
+        if (_synchronizationContext is null || SynchronizationContext.Current == _synchronizationContext)
+        {
+            action();
+            return;
+        }
+
+        _synchronizationContext.Post(_ => action(), null);
     }
 
     private bool TryCreateSelection(out SourceSelection selection)

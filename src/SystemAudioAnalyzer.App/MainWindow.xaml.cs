@@ -9,14 +9,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         var provider = new NaudioAudioOutputDeviceProvider();
-        DataContext = new MainViewModel(new UnavailableAnalyzerController(), provider.GetActiveDevices());
-    }
-
-    private sealed class UnavailableAnalyzerController : IAnalyzerController
-    {
-        public Task StartAsync(SourceSelection selection, CancellationToken cancellationToken = default) =>
-            Task.FromException(new InvalidOperationException("Audio sources are being configured."));
-
-        public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        DataContext = new MainViewModel(new AnalyzerController(), provider.GetActiveDevices());
     }
 }

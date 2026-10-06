@@ -9,7 +9,7 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
     private const uint Channels = 2;
     private LibVLC? _libVlc;
     private Media? _media;
-    private MediaPlayer? _mediaPlayer;
+    private LibVLCSharp.Shared.MediaPlayer? _mediaPlayer;
     private bool _disposed;
 
     public event EventHandler<LibVlcPcmEventArgs>? PcmReceived;
@@ -27,7 +27,7 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
 
         LibVLCSharp.Shared.Core.Initialize();
         _libVlc = new LibVLC($"--network-caching={networkCachingMilliseconds}");
-        _mediaPlayer = new MediaPlayer(_libVlc);
+        _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVlc);
         _mediaPlayer.Buffering += OnBuffering;
         _mediaPlayer.EncounteredError += OnEncounteredError;
         _mediaPlayer.SetAudioFormat("f32l", SampleRate, Channels);

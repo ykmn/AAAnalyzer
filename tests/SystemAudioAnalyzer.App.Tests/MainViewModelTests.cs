@@ -51,6 +51,10 @@ public sealed class MainViewModelTests
 
     private sealed class FakeAnalyzerController : IAnalyzerController
     {
+        public event EventHandler<AnalysisFrame>? FrameAvailable;
+
+        public event EventHandler<AudioSourceStateChangedEventArgs>? SourceStateChanged;
+
         public int StartCount { get; private set; }
 
         public int StopCount { get; private set; }
@@ -66,5 +70,10 @@ public sealed class MainViewModelTests
             StopCount++;
             return Task.CompletedTask;
         }
+
+        public void PublishFrame(AnalysisFrame frame) => FrameAvailable?.Invoke(this, frame);
+
+        public void PublishState(AudioSourceState state) =>
+            SourceStateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state));
     }
 }
