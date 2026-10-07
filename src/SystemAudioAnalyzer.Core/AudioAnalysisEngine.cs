@@ -89,6 +89,14 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         }
     }
 
+    public void SetLoudnessIntegratedWindow(int seconds)
+    {
+        lock (_measurementGate)
+        {
+            _loudnessMeter.SetIntegratedWindowSeconds(seconds);
+        }
+    }
+
     public Task StartAsync(OutputDeviceInfo? device = null)
     {
         OutputDeviceInfo selectedDevice;

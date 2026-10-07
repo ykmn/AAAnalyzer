@@ -42,6 +42,42 @@ public sealed class LoudnessMeterTests
         Assert.InRange(Assert.IsType<float>(measurement.MomentaryLufs), -26f, -20f);
     }
 
+    [Fact]
+    public void IntegratedLoudnessUsesConfiguredRollingWindow()
+    {
+        var meter = new LoudnessMeter(integratedWindowSeconds: 2);
+        var format = new AudioFormat(48_000, 1);
+        var loud = CreateSineWave(1_000, format.SampleRate, format.SampleRate, amplitude: 0.5f);
+        var quiet = CreateSineWave(1_000, format.SampleRate, format.SampleRate, amplitude: 0.1f);
+
+        meter.Process(loud, format);
+        var mixed = meter.Process(quiet, format);
+        var afterOldBlockExpires = meter.Process(quiet, format);
+
+        Assert.NotNull(mixed.IntegratedLufs);
+        Assert.NotNull(afterOldBlockExpires.IntegratedLufs);
+        Assert.True(afterOldBlockExpires.IntegratedLufs < mixed.IntegratedLufs);
+        Assert.InRange(meter.BufferedIntegratedBlockCount, 1, 20);
+    }
+
+    [Fact]
+    public void ChangingIntegratedWindowTrimsAndResizesTheRollingBuffer()
+    {
+        var meter = new LoudnessMeter(integratedWindowSeconds: 1);
+        var format = new AudioFormat(1_000, 1);
+        var signal = Enumerable.Repeat(0.1f, 2_000).ToArray();
+
+        meter.Process(signal, format);
+        Assert.Equal(10, meter.BufferedIntegratedBlockCount);
+
+        meter.SetIntegratedWindowSeconds(2);
+        meter.Process(signal.AsSpan(0, 1_000), format);
+        Assert.Equal(20, meter.BufferedIntegratedBlockCount);
+
+        meter.SetIntegratedWindowSeconds(1);
+        Assert.Equal(10, meter.BufferedIntegratedBlockCount);
+    }
+
     private static float[] CreateSineWave(int frequencyHz, int sampleRate, int frames, float amplitude)
     {
         var samples = new float[frames];

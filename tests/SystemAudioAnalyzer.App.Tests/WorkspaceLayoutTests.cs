@@ -34,5 +34,6 @@ public sealed class WorkspaceLayoutTests
         public void ResetTruePeakOverload(int channel) { }
         public void ResetLoudness() { }
         public void SetAnalysisConfiguration(AnalysisConfiguration configuration) { }
+        public void SetLoudnessIntegratedWindow(int seconds) { }
     }
 }

@@ -196,6 +196,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ArgumentNullException.ThrowIfNull(value);
             if (SetField(ref _measurementSettings, value))
             {
+                _controller.SetLoudnessIntegratedWindow(value.Meters.IntegratedWindowSeconds);
                 RtaResolution = value.Rta.Resolution;
                 RtaChannelMode = value.Rta.Source;
                 PhaseGain = value.Phase.Gain;

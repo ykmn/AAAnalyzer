@@ -4,7 +4,8 @@ public sealed class LoudnessMeter
 {
     private readonly Queue<double> _momentaryEnergies = new();
     private readonly Queue<double> _shortTermEnergies = new();
-    private readonly List<double> _integratedBlocks = [];
+    private readonly Queue<double> _integratedBlocks = new();
+    private long _integratedBlockCapacity;
     private Biquad[] _preFilters = [];
     private Biquad[] _highPassFilters = [];
     private AudioFormat? _format;
@@ -12,6 +13,36 @@ public sealed class LoudnessMeter
     private double _shortTermSum;
     private double _blockSum;
     private int _blockFrames;
+
+    public LoudnessMeter(int integratedWindowSeconds = 600)
+    {
+        if (integratedWindowSeconds <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(integratedWindowSeconds), "Integrated window must be positive.");
+        }
+
+        IntegratedWindowSeconds = integratedWindowSeconds;
+        _integratedBlockCapacity = integratedWindowSeconds * 10L;
+    }
+
+    public int IntegratedWindowSeconds { get; private set; }
+
+    public int BufferedIntegratedBlockCount => _integratedBlocks.Count;
+
+    public void SetIntegratedWindowSeconds(int seconds)
+    {
+        if (seconds <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(seconds), "Integrated window must be positive.");
+        }
+
+        IntegratedWindowSeconds = seconds;
+        _integratedBlockCapacity = seconds * 10L;
+        while (_integratedBlocks.Count > _integratedBlockCapacity)
+        {
+            _integratedBlocks.Dequeue();
+        }
+    }
 
     public LoudnessMeasurement Process(ReadOnlySpan<float> interleavedSamples, AudioFormat format)
     {
@@ -42,7 +73,11 @@ public sealed class LoudnessMeter
             _blockFrames++;
             if (_blockFrames == blockFrames)
             {
-                _integratedBlocks.Add(_blockSum / _blockFrames);
+                _integratedBlocks.Enqueue(_blockSum / _blockFrames);
+                if (_integratedBlocks.Count > _integratedBlockCapacity)
+                {
+                    _integratedBlocks.Dequeue();
+                }
                 _blockSum = 0d;
                 _blockFrames = 0;
             }
@@ -84,16 +119,33 @@ public sealed class LoudnessMeter
 
     private float? CalculateIntegrated()
     {
-        var absoluteGated = _integratedBlocks.Where(block => ToLufs(block, true) is >= -70f).ToArray();
-        if (absoluteGated.Length == 0)
+        var absoluteGatedEnergy = 0d;
+        var absoluteGatedCount = 0;
+        foreach (var block in _integratedBlocks)
         {
-            return null;
+            if (ToLufs(block, true) is >= -70f)
+            {
+                absoluteGatedEnergy += block;
+                absoluteGatedCount++;
+            }
         }
 
-        var ungatedMean = absoluteGated.Average();
-        var relativeGate = ToLufs(ungatedMean, true)!.Value - 10f;
-        var gated = absoluteGated.Where(block => ToLufs(block, true) >= Math.Max(-70f, relativeGate)).ToArray();
-        return gated.Length == 0 ? null : ToLufs(gated.Average(), true);
+        if (absoluteGatedCount == 0) return null;
+
+        var relativeGate = ToLufs(absoluteGatedEnergy / absoluteGatedCount, true)!.Value - 10f;
+        var gatedEnergy = 0d;
+        var gatedCount = 0;
+        foreach (var block in _integratedBlocks)
+        {
+            var blockLufs = ToLufs(block, true);
+            if (blockLufs >= Math.Max(-70f, relativeGate))
+            {
+                gatedEnergy += block;
+                gatedCount++;
+            }
+        }
+
+        return gatedCount == 0 ? null : ToLufs(gatedEnergy / gatedCount, true);
     }
 
     private static void Append(Queue<double> values, ref double sum, double value, int maximumCount)

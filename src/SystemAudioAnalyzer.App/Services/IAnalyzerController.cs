@@ -21,4 +21,6 @@ public interface IAnalyzerController
     void ResetLoudness();
 
     void SetAnalysisConfiguration(AnalysisConfiguration configuration);
+
+    void SetLoudnessIntegratedWindow(int seconds);
 }
