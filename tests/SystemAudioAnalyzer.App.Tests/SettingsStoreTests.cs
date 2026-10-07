@@ -154,6 +154,22 @@ public sealed class SettingsStoreTests
     }
 
     [Fact]
+    public async Task DialogApplyAndSaveUseProfileCatalogInsteadOfCompatibilitySettingsFile()
+    {
+        var store = CreateCatalogStore();
+        await store.SaveCatalogAsync(SettingsProfileCatalog.Default);
+        var viewModel = new SettingsDialogViewModel(store, await store.LoadCatalogAsync(),
+            MeasurementSettings.Default, InstrumentTab.Analyzer);
+        viewModel.PhaseGain = 1.6;
+
+        viewModel.Apply();
+        await viewModel.SaveAsync();
+
+        Assert.Equal(1.6, (await store.LoadStartupSettingsAsync()).Phase.Gain);
+        Assert.False(File.Exists(store.SettingsPath));
+    }
+
+    [Fact]
     public async Task CompatibilitySaveUpdatesDesignatedDefaultAndPreservesOtherProfiles()
     {
         var store = CreateCatalogStore();

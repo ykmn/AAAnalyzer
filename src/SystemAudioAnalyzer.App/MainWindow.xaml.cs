@@ -82,7 +82,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenSettings(object sender, RoutedEventArgs eventArgs)
+    private async void OpenSettings(object sender, RoutedEventArgs eventArgs)
     {
         if (sender is not FrameworkElement { Tag: string name } || !Enum.TryParse<InstrumentTab>(name, out var page))
         {
@@ -94,10 +94,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new SettingsWindow(new SettingsDialogViewModel(_settingsStore, mainViewModel.MeasurementSettings, page)) { Owner = this };
-        dialog.SettingsSaveFailed += (_, args) => _logger.Write(args.Exception);
-        dialog.SettingsApplied += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
-        dialog.SettingsCancelled += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
-        dialog.ShowDialog();
+        try
+        {
+            var catalog = await _settingsStore.LoadCatalogAsync();
+            var viewModel = new SettingsDialogViewModel(_settingsStore, catalog, mainViewModel.MeasurementSettings, page,
+                () => MessageBox.Show(this, "Discard the unsaved changes and switch profile?", "Unsaved changes",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
+            var dialog = new SettingsWindow(viewModel) { Owner = this };
+            dialog.SettingsSaveFailed += (_, args) => _logger.Write(args.Exception);
+            dialog.SettingsApplied += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
+            dialog.SettingsCancelled += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
+            dialog.ShowDialog();
+        }
+        catch (Exception exception) { _logger.Write(exception); }
     }
 }

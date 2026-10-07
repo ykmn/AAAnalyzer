@@ -1,19 +1,115 @@
 <Window x:Class="SystemAudioAnalyzer.App.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:viewModels="clr-namespace:SystemAudioAnalyzer.App.ViewModels"
-        xmlns:settings="clr-namespace:SystemAudioAnalyzer.App.Settings"
-        Title="Настройки измерений" Width="560" Height="420" WindowStartupLocation="CenterOwner" Background="#111827" Foreground="#E5E7EB">
-    <Grid Margin="16"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <TabControl x:Name="Pages">
-            <TabItem Header="Analyzer"><StackPanel Margin="16"><TextBlock Text="FFT size и окно: фиксированы текущим движком"/><TextBlock Text="Floor отображения (dB)" Margin="0,14,0,2"/><TextBox Text="{Binding AnalyzerFloorDb, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Cursor color (#RRGGBB)" Margin="0,10,0,0"/><TextBox Text="{Binding AnalyzerCursorColor, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Text color (#RRGGBB)" Margin="0,10,0,0"/><TextBox Text="{Binding AnalyzerTextColor, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Изменение параметров FFT станет доступно после расширения Core." Foreground="#9CA3AF" Margin="0,12,0,0"/></StackPanel></TabItem>
-            <TabItem Header="Waterfall"><StackPanel Margin="16"><TextBlock Text="Display floor (dB)"/><TextBox Text="{Binding WaterfallFloorDb, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Display offset (dB)" Margin="0,10,0,0"/><TextBox Text="{Binding WaterfallOffsetDb, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Palette color (#RRGGBB)" Margin="0,10,0,0"/><TextBox Text="{Binding WaterfallPaletteColor, UpdateSourceTrigger=PropertyChanged}"/></StackPanel></TabItem>
-            <TabItem Header="Meters"><StackPanel Margin="16"><TextBlock Text="Display range (dB)"/><TextBox Text="{Binding MeterRangeDb, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Meter color (#RRGGBB)" Margin="0,10,0,0"/><TextBox Text="{Binding MeterColor, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Overload color (#RRGGBB)" Margin="0,10,0,0"/><TextBox Text="{Binding OverloadColor, UpdateSourceTrigger=PropertyChanged}"/></StackPanel></TabItem>
-            <TabItem Header="Loudness"><StackPanel Margin="16"><TextBlock Text="History window (seconds)"/><TextBox Text="{Binding LoudnessHistorySeconds, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Metric" Margin="0,10,0,0"/><ComboBox SelectedValue="{Binding LoudnessMetric}" SelectedValuePath="Tag"><ComboBoxItem Content="Momentary" Tag="{x:Static settings:LoudnessMetric.Momentary}"/><ComboBoxItem Content="Short-term" Tag="{x:Static settings:LoudnessMetric.ShortTerm}"/><ComboBoxItem Content="Integrated" Tag="{x:Static settings:LoudnessMetric.Integrated}"/></ComboBox><CheckBox Content="Automatic scale" IsChecked="{Binding LoudnessAutoScale}" Margin="0,10,0,0"/><TextBlock Text="Span (LUFS)" Margin="0,10,0,0"/><TextBox Text="{Binding LoudnessSpan, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Centre (LUFS)" Margin="0,10,0,0"/><TextBox Text="{Binding LoudnessCentre, UpdateSourceTrigger=PropertyChanged}"/></StackPanel></TabItem>
-            <TabItem Header="RTA"><StackPanel Margin="16"><TextBlock Text="Source"/><ComboBox SelectedValue="{Binding RtaSource}" SelectedValuePath="Tag"><ComboBoxItem Content="Mono (L+R)" Tag="{x:Static viewModels:RtaChannelMode.Mono}"/><ComboBoxItem Content="Left" Tag="{x:Static viewModels:RtaChannelMode.Left}"/><ComboBoxItem Content="Right" Tag="{x:Static viewModels:RtaChannelMode.Right}"/></ComboBox><TextBlock Text="Resolution" Margin="0,10,0,0"/><ComboBox SelectedValue="{Binding RtaResolution}" SelectedValuePath="Tag"><ComboBoxItem Content="1/1 octave" Tag="{x:Static viewModels:RtaResolution.One}"/><ComboBoxItem Content="1/3 octave" Tag="{x:Static viewModels:RtaResolution.OneThird}"/><ComboBoxItem Content="1/6 octave" Tag="{x:Static viewModels:RtaResolution.OneSixth}"/><ComboBoxItem Content="1/12 octave" Tag="{x:Static viewModels:RtaResolution.OneTwelfth}"/></ComboBox><TextBlock Text="Scale top (dB)" Margin="0,10,0,0"/><TextBox Text="{Binding RtaScaleTop, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Scale range (dB)" Margin="0,10,0,0"/><TextBox Text="{Binding RtaScaleRange, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Target line (dB)" Margin="0,10,0,0"/><TextBox Text="{Binding RtaTargetLine, UpdateSourceTrigger=PropertyChanged}"/></StackPanel></TabItem>
-            <TabItem Header="Phase"><StackPanel Margin="16"><TextBlock Text="Gain compensation"/><Slider Minimum="0.25" Maximum="4" Value="{Binding PhaseGain}"/><TextBlock Text="{Binding PhaseGain, StringFormat=Gain: {0:F2}}"/></StackPanel></TabItem>
+        Title="Spectrum Tool DSP 3 — Settings" Width="432" Height="768" MinWidth="400" MinHeight="640"
+        WindowStartupLocation="CenterOwner" Background="#F4F4F4" Foreground="#111111">
+    <Grid Margin="10">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="2,0,2,8">
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock Text="Preset:" Width="76" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding ProfileOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedProfileId, UpdateSourceTrigger=PropertyChanged}"/>
+            </DockPanel>
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock Text="Save as:" Width="76" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"/>
+                <Button Content="Save" Click="SaveProfile" Margin="6,0,0,0" Padding="12,2"/>
+                <Button Content="Delete" Click="DeleteProfile" Margin="6,0,0,0" Padding="12,2"/>
+            </DockPanel>
+            <Button Content="Make selected preset the default for new panels" Click="SetDefault" HorizontalContentAlignment="Center"/>
+        </StackPanel>
+
+        <TabControl x:Name="Pages" Grid.Row="1" Background="#F4F4F4" SelectionChanged="PageSelectionChanged">
+            <TabItem Header="Analyzer"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
+                <DockPanel><TextBlock Text="FFT size:" Width="190"/><ComboBox ItemsSource="{Binding FftSizes}" SelectedItem="{Binding AnalyzerFftSize}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Window:" Width="190"/><ComboBox ItemsSource="{Binding WindowFunctions}" SelectedItem="{Binding AnalyzerWindowFunction}"/></DockPanel>
+                <CheckBox Content="Logarithmic frequency scale" IsChecked="{Binding IsLogarithmicFrequencyScale}" Margin="0,6,0,0"/>
+                <CheckBox Content="Logarithmic amplitude scale" IsChecked="{Binding IsLogarithmicAmplitudeScale}" Margin="0,4,0,0"/>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Min dB:" Width="190"/><TextBox Text="{Binding AnalyzerFloorDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Gain:" Width="190"/><TextBox Text="{Binding AnalyzerGain, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Cursor color:" Width="190"/><Button Tag="AnalyzerCursorColor" Background="{Binding AnalyzerCursorColor}" Click="PickColor" Width="60" Height="23" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Text color:" Width="190"/><Button Tag="AnalyzerTextColor" Background="{Binding AnalyzerTextColor}" Click="PickColor" Width="60" Height="23" HorizontalAlignment="Left"/></DockPanel>
+            </StackPanel></ScrollViewer></TabItem>
+
+            <TabItem Header="Waterfall"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
+                <DockPanel><TextBlock Text="Display floor (dB):" Width="190"/><TextBox Text="{Binding WaterfallFloorDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Display offset (dB):" Width="190"/><TextBox Text="{Binding WaterfallOffsetDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,4"><TextBlock Text="Palette color:" Width="190"/><Button Tag="WaterfallPaletteColor" Background="{Binding WaterfallPaletteColor}" Click="PickColor" Width="60" Height="23" HorizontalAlignment="Left"/></DockPanel>
+                <TextBlock Text="Gradient (dB stops):" Margin="0,6,0,2"/>
+                <ListBox ItemsSource="{Binding GradientStops}" SelectedItem="{Binding SelectedGradientStop}" Height="170">
+                    <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="2"><Border Width="32" Height="16" Background="{Binding Color}" BorderBrush="#555" BorderThickness="1" Margin="0,0,8,0"/><TextBlock Text="{Binding LevelDb, StringFormat={}{0:G} dB}" VerticalAlignment="Center"/></DockPanel></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="dB:" Width="36" VerticalAlignment="Center"/><TextBox Text="{Binding SelectedGradientLevel, UpdateSourceTrigger=PropertyChanged}" Width="145"/>
+                    <Button Content="Color…" Click="PickGradientColor" Margin="6,0,0,0" Padding="8,2"/><Button Content="Add" Click="AddGradientStop" Margin="6,0,0,0" Padding="10,2"/><Button Content="Delete" Click="DeleteGradientStop" IsEnabled="{Binding CanDeleteGradientStop}" Margin="6,0,0,0" Padding="8,2"/>
+                </DockPanel>
+            </StackPanel></ScrollViewer></TabItem>
+
+            <TabItem Header="Meters"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
+                <DockPanel><TextBlock Text="Attack (ms):" Width="190"/><TextBox Text="{Binding MeterAttackMs, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="Release (ms):" Width="190"/><TextBox Text="{Binding MeterReleaseMs, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="Peak hold (ms):" Width="190"/><TextBox Text="{Binding MeterPeakHoldMs, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="Peak/RMS range (dB):" Width="190"/><TextBox Text="{Binding MeterRangeDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <CheckBox Content="Show clip indicator and peak readout" IsChecked="{Binding ShowClipAndPeakReadout}" Margin="0,7,0,0"/>
+                <CheckBox Content="Disable RMS bar (L/R)" IsChecked="{Binding DisableRmsBar}" Margin="0,6,0,0"/>
+                <CheckBox Content="Show dB scale (L/R)" IsChecked="{Binding ShowDbScale}" Margin="0,6,0,0"/>
+                <CheckBox Content="Show LUFS indicator" IsChecked="{Binding ShowLufsIndicator}" Margin="0,6,0,0"/>
+                <DockPanel Margin="0,7,0,0"><TextBlock Text="LUFS bar shows:" Width="190"/><ComboBox ItemsSource="{Binding LoudnessMetricOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding MeterLufsMetric}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="Rolling Integrated, sec:" Width="190"/><TextBox Text="{Binding IntegratedWindowSeconds, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <CheckBox Content="Show LKFS readout" IsChecked="{Binding ShowLkfsReadout}" Margin="0,6,0,0"/>
+                <DockPanel Margin="0,7,0,0"><TextBlock Text="UI font size:" Width="190"/><ComboBox ItemsSource="{Binding MeterFontSizeOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding MeterFontSize}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="LUFS scale:" Width="190"/><ComboBox ItemsSource="{Binding LufsScaleOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding LufsScale}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="Scale top / bottom / step:" Width="190"/><TextBox Text="{Binding LufsScaleTop, UpdateSourceTrigger=PropertyChanged}" Width="55"/><TextBox Text="{Binding LufsScaleBottom, UpdateSourceTrigger=PropertyChanged}" Width="55" Margin="4,0,0,0"/><TextBox Text="{Binding LufsScaleStep, UpdateSourceTrigger=PropertyChanged}" Width="55" Margin="4,0,0,0"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Peak color:" Width="190"/><Button Tag="PeakColor" Background="{Binding PeakColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="RMS color:" Width="190"/><Button Tag="RmsColor" Background="{Binding RmsColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="LUFS color:" Width="190"/><Button Tag="LufsColor" Background="{Binding LufsColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="Clip color:" Width="190"/><Button Tag="ClipColor" Background="{Binding ClipColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="Meter color (compatibility):" Width="190"/><Button Tag="MeterColor" Background="{Binding MeterColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="Overload color (compatibility):" Width="190"/><Button Tag="OverloadColor" Background="{Binding OverloadColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+            </StackPanel></ScrollViewer></TabItem>
+
+            <TabItem Header="Loudness"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
+                <DockPanel><TextBlock Text="Window, sec (15–43200):" Width="190"/><TextBox Text="{Binding LoudnessHistorySeconds, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Mode:" Width="190"/><ComboBox ItemsSource="{Binding LoudnessMetricOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding LoudnessMetric}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Y span (LUFS):" Width="190"/><TextBox Text="{Binding LoudnessSpan, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Y center (LUFS):" Width="190"/><TextBox Text="{Binding LoudnessCentre, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <TextBlock Text="Color gradient (LUFS stops):" Margin="0,7,0,2"/>
+                <ListBox ItemsSource="{Binding GradientStops}" SelectedItem="{Binding SelectedGradientStop}" Height="150">
+                    <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="2"><Border Width="32" Height="16" Background="{Binding Color}" BorderBrush="#555" BorderThickness="1" Margin="0,0,8,0"/><TextBlock Text="{Binding LevelDb, StringFormat={}{0:G} LUFS}" VerticalAlignment="Center"/></DockPanel></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="LUFS:" Width="42" VerticalAlignment="Center"/><TextBox Text="{Binding SelectedGradientLevel, UpdateSourceTrigger=PropertyChanged}" Width="145"/>
+                    <Button Content="Color…" Click="PickGradientColor" Margin="6,0,0,0" Padding="8,2"/><Button Content="Add" Click="AddGradientStop" Margin="6,0,0,0" Padding="10,2"/><Button Content="Delete" Click="DeleteGradientStop" IsEnabled="{Binding CanDeleteGradientStop}" Margin="6,0,0,0" Padding="8,2"/>
+                </DockPanel>
+                <Button Content="Save current settings from program window as default" Click="SaveRuntimeAsDefault" Margin="0,8,0,0"/>
+            </StackPanel></ScrollViewer></TabItem>
+
+            <TabItem Header="RTA"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
+                <DockPanel><TextBlock Text="Source:" Width="190"/><ComboBox ItemsSource="{Binding RtaSourceOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RtaSource}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Resolution:" Width="190"/><ComboBox ItemsSource="{Binding RtaResolutionOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RtaResolution}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Averages (1–1000):" Width="190"/><TextBox Text="{Binding RtaAveragingCount, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Tilt, dB/oct:" Width="190"/><TextBox Text="{Binding RtaTiltDbPerOctave, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Release, dB/sec:" Width="190"/><TextBox Text="{Binding RtaReleaseDbPerSecond, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Scale top, dB:" Width="190"/><TextBox Text="{Binding RtaScaleTop, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Scale range, dB:" Width="190"/><TextBox Text="{Binding RtaScaleRange, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Target line, dB:" Width="190"/><TextBox Text="{Binding RtaTargetLine, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Target range, +/- dB:" Width="190"/><TextBox Text="{Binding RtaTargetRange, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <CheckBox Content="Show peak hold caps" IsChecked="{Binding ShowRtaPeakHoldCaps}" Margin="0,7,0,0"/>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Peak hold, ms:" Width="190"/><TextBox Text="{Binding RtaPeakHoldMs, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,5,0,0"><TextBlock Text="Bar color:" Width="190"/><Button Tag="RtaBarColor" Background="{Binding RtaBarColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="Peak cap color:" Width="190"/><Button Tag="RtaPeakCapColor" Background="{Binding RtaPeakCapColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,4,0,0"><TextBlock Text="Target band color:" Width="190"/><Button Tag="RtaTargetBandColor" Background="{Binding RtaTargetBandColor}" Click="PickColor" Width="60" Height="22" HorizontalAlignment="Left"/></DockPanel>
+            </StackPanel></ScrollViewer></TabItem>
+
+            <TabItem Header="Phase"><StackPanel Margin="8"><TextBlock Text="Gain compensation"/><Slider Minimum="0.25" Maximum="4" Value="{Binding PhaseGain, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="{Binding PhaseGain, StringFormat=Gain: {0:F2}}"/></StackPanel></TabItem>
         </TabControl>
-        <TextBlock x:Name="SaveError" Grid.Row="1" Foreground="#F87171" TextWrapping="Wrap" Margin="0,10,0,0"/>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0"><Button Content="Применить" Click="Apply" Width="100" Margin="4,0"/><Button Content="OK" Click="Accept" Width="84" Margin="4,0"/><Button Content="Отмена" Click="Cancel" Width="84" Margin="4,0"/></StackPanel>
+
+        <TextBlock x:Name="SaveError" Grid.Row="2" Foreground="#B00020" TextWrapping="Wrap" Margin="4,8,4,0"/>
+        <DockPanel Grid.Row="3" Margin="2,10,2,0">
+            <TextBlock Text="© 2026 Spectrum Tool DSP 3 · Inspired by Winamp DSP Spectrum Tool" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                <Button Content="Apply" Click="Apply" MinWidth="74" Margin="4,0"/>
+                <Button Content="OK" Click="Accept" MinWidth="74" Margin="4,0"/>
+                <Button Content="Cancel" Click="Cancel" MinWidth="74" Margin="4,0"/>
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>

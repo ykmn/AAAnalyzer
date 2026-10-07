@@ -47,7 +47,8 @@ public sealed class SettingsEditSessionTests
     [Fact]
     public void EditingWaterfallFloorUpdatesTheSettingsSnapshot()
     {
-        var viewModel = new SettingsDialogViewModel(new SettingsStore(Path.GetTempPath()), MeasurementSettings.Default, InstrumentTab.Waterfall);
+        var viewModel = new SettingsDialogViewModel(new SettingsStore(Path.GetTempPath()), SettingsProfileCatalog.Default,
+            MeasurementSettings.Default, InstrumentTab.Waterfall);
 
         viewModel.WaterfallFloorDb = -90;
 

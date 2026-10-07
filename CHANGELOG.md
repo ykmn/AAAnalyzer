@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.035 — 2026-10-07
+
+- Диалог настроек приведён к reference screenshots: шесть страниц Analyzer,
+  Waterfall, Meters, Loudness, RTA и Phase, редактирование цветовых градиентов
+  через системный Windows ColorDialog и общие действия с профилями.
+- Apply/OK меняют только активный снимок; Save/Save as/Default/Delete выполняют
+  явные операции с каталогом. Cancel и закрытие окна восстанавливают настройки,
+  активные при открытии. README описывает app-local storage и legacy-импорт.
+
 ## 0.034 — 2026-10-07
 
 - Настройки Analyzer теперь применяются без перезапуска источника; Waterfall
