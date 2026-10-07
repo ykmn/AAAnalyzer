@@ -25,6 +25,28 @@ public sealed class AdvancedMeasurementEngineTests
         Assert.True(truePeak.Maximum[1] >= 0.5f);
     }
 
+    [Fact]
+    public async Task ResetLoudnessDoesNotResetTruePeakMeasurements()
+    {
+        var source = new FakeSource();
+        var device = new OutputDeviceInfo("default", "Speakers", true);
+        await using var engine = new AudioAnalysisEngine(new FakeDeviceProvider(device), new UnsupportedCaptureFactory());
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+        await engine.StartAsync(source);
+        source.Publish([0.8f, 0.2f], new AudioFormat(48_000, 2));
+        await using var frames = engine.ReadFrames(cancellation.Token).GetAsyncEnumerator(cancellation.Token);
+        Assert.True(await frames.MoveNextAsync());
+
+        engine.ResetLoudness();
+        await Task.Delay(40, cancellation.Token);
+        source.Publish([0.4f, 0.1f], new AudioFormat(48_000, 2));
+        Assert.True(await frames.MoveNextAsync());
+
+        var truePeak = Assert.IsType<AdvancedMeasurementFrame>(frames.Current.AdvancedMeasurements).TruePeak;
+        Assert.True(truePeak.Maximum[0] >= 0.8f);
+    }
+
     private sealed class FakeDeviceProvider(OutputDeviceInfo device) : IAudioOutputDeviceProvider
     {
         public IReadOnlyList<OutputDeviceInfo> GetActiveDevices() => [device];

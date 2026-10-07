@@ -13,6 +13,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     private readonly LevelMeter _levelMeter = new();
     private readonly SpectrumAnalyzer _spectrumAnalyzer = new();
     private readonly TruePeakMeter _truePeakMeter = new();
+    private readonly LoudnessMeter _loudnessMeter = new();
     private readonly object _measurementGate = new();
     private readonly EngineStateMachine _stateMachine = new();
     private Channel<AudioSamplesAvailableEventArgs>? _samples;
@@ -61,6 +62,14 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         lock (_measurementGate)
         {
             _truePeakMeter.Reset(channel);
+        }
+    }
+
+    public void ResetLoudness()
+    {
+        lock (_measurementGate)
+        {
+            _loudnessMeter.Reset();
         }
     }
 
@@ -285,7 +294,9 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             AdvancedMeasurementFrame advancedMeasurements;
             lock (_measurementGate)
             {
-                advancedMeasurements = new AdvancedMeasurementFrame(_truePeakMeter.Process(buffer.Samples, buffer.Format.Channels));
+                advancedMeasurements = new AdvancedMeasurementFrame(
+                    _truePeakMeter.Process(buffer.Samples, buffer.Format.Channels),
+                    _loudnessMeter.Process(buffer.Samples, buffer.Format));
             }
             var droppedBufferCount = Interlocked.Exchange(ref _droppedBufferCount, 0);
             if (droppedBufferCount > 0)

@@ -1,6 +1,8 @@
 namespace SystemAudioAnalyzer.Core;
 
-public sealed class AdvancedMeasurementFrame(StereoTruePeakMeasurement truePeak)
+public sealed class AdvancedMeasurementFrame(StereoTruePeakMeasurement truePeak, LoudnessMeasurement loudness)
 {
     public StereoTruePeakMeasurement TruePeak { get; } = truePeak ?? throw new ArgumentNullException(nameof(truePeak));
+
+    public LoudnessMeasurement Loudness { get; } = loudness ?? throw new ArgumentNullException(nameof(loudness));
 }
