@@ -33,8 +33,10 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _openingRuntimeSnapshot = openingRuntimeSnapshot ?? throw new ArgumentNullException(nameof(openingRuntimeSnapshot));
-        _session = new SettingsEditSession(openingRuntimeSnapshot);
         _selectedProfileId = catalog.DefaultProfileId;
+        var selectedProfileSettings = catalog.Profiles.Single(profile => profile.Id == _selectedProfileId).Settings;
+        _session = new SettingsEditSession(openingRuntimeSnapshot);
+        _session.Replace(selectedProfileSettings);
         _selectedPage = selectedPage;
         _confirmDiscardDraft = confirmDiscardDraft ?? (() => false);
         GradientStops = [];

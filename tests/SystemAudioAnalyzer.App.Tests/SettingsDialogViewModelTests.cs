@@ -173,6 +173,26 @@ public sealed class SettingsDialogViewModelTests
     }
 
     [Fact]
+    public void OpensDefaultProfileAsDraftButCancelRestoresOpeningRuntimeSnapshot()
+    {
+        var openingRuntime = MeasurementSettings.Default with { Phase = new PhaseDisplaySettings(1.25) };
+        var persistedDefault = MeasurementSettings.Default with { Phase = new PhaseDisplaySettings(1.75) };
+        var catalog = SettingsProfileCatalog.Default.SaveProfile("default", persistedDefault);
+        var viewModel = new SettingsDialogViewModel(CreateStore(), catalog, openingRuntime, InstrumentTab.Phase);
+
+        Assert.Equal("default", viewModel.SelectedProfileId);
+        Assert.Equal(persistedDefault, viewModel.Current);
+        Assert.False(viewModel.HasUnsavedDraft);
+
+        viewModel.PhaseGain = 2.25;
+        var appliedRuntime = viewModel.Apply();
+        var reopened = new SettingsDialogViewModel(CreateStore(), catalog, appliedRuntime, InstrumentTab.Phase);
+        Assert.Equal(persistedDefault, reopened.Current);
+        Assert.Equal(appliedRuntime, reopened.Cancel());
+        Assert.Equal(openingRuntime, viewModel.Cancel());
+    }
+
+    [Fact]
     public void GradientEditingChangesOnlySelectedStopAndAddInterpolatesMidpoint()
     {
         var viewModel = CreateViewModel(CreateStore());
