@@ -186,7 +186,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public InstrumentTab ActiveTab
     {
         get => _activeTab;
-        private set => SetField(ref _activeTab, value);
+        set => SetField(ref _activeTab, value);
     }
 
     public MeasurementSettings MeasurementSettings
@@ -202,9 +202,42 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 RtaChannelMode = value.Rta.Source;
                 PhaseGain = value.Phase.Gain;
                 OnPropertyChanged(nameof(CurrentLoudnessText));
+                OnPropertyChanged(nameof(LoudnessMetric));
+                OnPropertyChanged(nameof(LoudnessWindowSeconds));
+                OnPropertyChanged(nameof(LoudnessScaleText));
+                OnPropertyChanged(nameof(RtaAverageText));
+                OnPropertyChanged(nameof(RtaTargetText));
             }
         }
     }
+
+    public LoudnessMetric LoudnessMetric
+    {
+        get => MeasurementSettings.Loudness.Metric;
+        set { if (value != LoudnessMetric) MeasurementSettings = ToolbarSettingsActions.WithLoudnessMetric(MeasurementSettings, value); }
+    }
+
+    public int LoudnessWindowSeconds
+    {
+        get => MeasurementSettings.Loudness.HistorySeconds;
+        set { if (value != LoudnessWindowSeconds) MeasurementSettings = ToolbarSettingsActions.WithLoudnessWindow(MeasurementSettings, value); }
+    }
+
+    public string LoudnessScaleText => ToolbarSettingsActions.LoudnessScaleText(MeasurementSettings);
+
+    public string RtaAverageText => $"Avg {MeasurementSettings.Rta.AveragingCount}";
+
+    public string RtaTargetText => $"Tgt {MeasurementSettings.Rta.TargetLineDb:0}";
+
+    public void ZoomLoudness(double factor) => MeasurementSettings = ToolbarSettingsActions.ZoomLoudness(MeasurementSettings, factor);
+
+    public void ShiftLoudness(double deltaLufs) => MeasurementSettings = ToolbarSettingsActions.ShiftLoudness(MeasurementSettings, deltaLufs);
+
+    public void CycleRollingWindow() => MeasurementSettings = ToolbarSettingsActions.CycleRollingWindow(MeasurementSettings);
+
+    public void AdjustRtaAveraging(int delta) => MeasurementSettings = ToolbarSettingsActions.WithRtaAveraging(MeasurementSettings, delta);
+
+    public void AdjustRtaTarget(double deltaDb) => MeasurementSettings = ToolbarSettingsActions.WithRtaTarget(MeasurementSettings, deltaDb);
 
     public double PhaseGain
     {

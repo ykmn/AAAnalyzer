@@ -1,0 +1,50 @@
+using System.Globalization;
+
+namespace SystemAudioAnalyzer.App.Settings;
+
+/// <summary>Pure settings transforms behind the Loudness and RTA toolbar buttons.</summary>
+public static class ToolbarSettingsActions
+{
+    private static readonly int[] RollingWindows = [60, 300, 600, 1_800, 3_600];
+
+    public static MeasurementSettings WithLoudnessMetric(MeasurementSettings settings, LoudnessMetric metric) =>
+        settings with { Loudness = settings.Loudness with { Metric = metric } };
+
+    public static MeasurementSettings WithLoudnessWindow(MeasurementSettings settings, int seconds) =>
+        settings with { Loudness = settings.Loudness with { HistorySeconds = Math.Clamp(seconds, 15, 43_200) } };
+
+    public static MeasurementSettings ZoomLoudness(MeasurementSettings settings, double factor) =>
+        settings with { Loudness = settings.Loudness with { AutoScale = false, SpanLufs = Math.Clamp(settings.Loudness.SpanLufs * factor, 2, 60) } };
+
+    public static MeasurementSettings ShiftLoudness(MeasurementSettings settings, double deltaLufs) =>
+        settings with { Loudness = settings.Loudness with { AutoScale = false, CentreLufs = settings.Loudness.CentreLufs + deltaLufs } };
+
+    public static MeasurementSettings CycleRollingWindow(MeasurementSettings settings)
+    {
+        var current = settings.Meters.IntegratedWindowSeconds;
+        var next = RollingWindows.FirstOrDefault(window => window > current);
+        if (next == 0) next = RollingWindows[0];
+        return settings with
+        {
+            Meters = settings.Meters with { IntegratedWindowSeconds = next },
+            Loudness = settings.Loudness with { Metric = LoudnessMetric.Integrated },
+        };
+    }
+
+    public static string LoudnessScaleText(MeasurementSettings settings)
+    {
+        if (settings.Loudness.AutoScale) return "auto";
+        var half = settings.Loudness.SpanLufs / 2d;
+        return string.Create(CultureInfo.InvariantCulture, $"{settings.Loudness.CentreLufs - half:0.#}..{settings.Loudness.CentreLufs + half:0.#}");
+    }
+
+    public static MeasurementSettings WithRtaAveraging(MeasurementSettings settings, int delta) =>
+        settings with { Rta = settings.Rta with { AveragingCount = Math.Clamp(settings.Rta.AveragingCount + delta, 1, 1_000) } };
+
+    public static MeasurementSettings WithRtaTarget(MeasurementSettings settings, double deltaDb)
+    {
+        var rta = settings.Rta;
+        var target = Math.Clamp(rta.TargetLineDb + deltaDb, rta.ScaleTopDb - rta.ScaleRangeDb, rta.ScaleTopDb);
+        return settings with { Rta = rta with { TargetLineDb = target } };
+    }
+}

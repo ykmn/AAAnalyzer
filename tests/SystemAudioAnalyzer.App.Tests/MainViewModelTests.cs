@@ -151,6 +151,24 @@ public sealed class MainViewModelTests
         Assert.Equal(0, controller.StopCount);
     }
 
+    [Fact]
+    public void ToolbarMethodsUpdateSettingsAndNotifyDependentText()
+    {
+        var viewModel = CreateViewModel();
+        var changed = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+        viewModel.AdjustRtaAveraging(10);
+        viewModel.ZoomLoudness(2);
+        viewModel.LoudnessMetric = LoudnessMetric.Momentary;
+
+        Assert.Equal("Avg 60", viewModel.RtaAverageText);
+        Assert.Equal("-17..-5", viewModel.LoudnessScaleText);
+        Assert.Equal(LoudnessMetric.Momentary, viewModel.MeasurementSettings.Loudness.Metric);
+        Assert.Contains(nameof(MainViewModel.RtaAverageText), changed);
+        Assert.Contains(nameof(MainViewModel.LoudnessScaleText), changed);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 
