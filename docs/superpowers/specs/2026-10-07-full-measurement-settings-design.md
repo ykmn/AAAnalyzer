@@ -52,7 +52,7 @@ are synchronously drained or blocked from the UI thread.
   stop halfway between adjacent thresholds and interpolates its initial color;
   Delete is disabled when only two stops remain.
 - Initial stops follow the reference thresholds (-110, -80, -55, -45 dB) and
-  blue/cyan/green/yellow color progression.
+  exact reference swatches: `#000000`, `#0080C0`, `#00FF39`, and `#E8E800`.
 - Frequency mapping follows Analyzer's linear/log option. L and R use the same
   mapping, remain equal width, and share the normalized cursor.
 

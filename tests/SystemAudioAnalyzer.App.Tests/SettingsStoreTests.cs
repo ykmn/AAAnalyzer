@@ -93,6 +93,52 @@ public sealed class SettingsStoreTests
         Assert.Single(diagnostics);
     }
 
+    [Fact]
+    public async Task ExpandedSettingsRoundTripPreservesGradientAndDynamics()
+    {
+        var store = new SettingsStore(CreateSettingsDirectory());
+        var settings = MeasurementSettings.Default with
+        {
+            Analyzer = MeasurementSettings.Default.Analyzer with { FftSize = 4096, WindowFunction = AnalyzerWindowFunction.Hamming },
+            Waterfall = MeasurementSettings.Default.Waterfall with { GradientStops = [new(-100, "Blue"), new(-20, "Cyan")] },
+            Meters = MeasurementSettings.Default.Meters with { AttackMs = 10, ShowRmsBars = true },
+            Rta = MeasurementSettings.Default.Rta with { AveragingCount = 100 },
+        };
+        await store.SaveAsync(settings);
+        var loaded = await store.LoadAsync();
+        Assert.Equal(4096, loaded.Analyzer.FftSize);
+        Assert.Equal(AnalyzerWindowFunction.Hamming, loaded.Analyzer.WindowFunction);
+        Assert.Equal(settings.Waterfall.GradientStops.ToArray(), loaded.Waterfall.GradientStops.ToArray());
+        Assert.Equal(10, loaded.Meters.AttackMs);
+        Assert.True(loaded.Meters.ShowRmsBars);
+        Assert.Equal(100, loaded.Rta.AveragingCount);
+        Assert.Equal(settings, loaded);
+        Assert.Equal(settings.GetHashCode(), loaded.GetHashCode());
+    }
+
+    [Fact]
+    public async Task SaveRejectsInvalidExpandedSettingsWithoutReplacingPreviousFile()
+    {
+        var store = new SettingsStore(CreateSettingsDirectory());
+        await store.SaveAsync(MeasurementSettings.Default);
+        var original = await File.ReadAllTextAsync(store.SettingsPath);
+        var invalid = MeasurementSettings.Default with { Analyzer = MeasurementSettings.Default.Analyzer with { FftSize = 17 } };
+        await Assert.ThrowsAsync<ArgumentException>(() => store.SaveAsync(invalid));
+        Assert.Equal(original, await File.ReadAllTextAsync(store.SettingsPath));
+    }
+
+    [Fact]
+    public async Task MissingGradientStopLevelReturnsDefaultsAndReportsFallback()
+    {
+        var diagnostics = new List<string>();
+        var store = new SettingsStore(CreateSettingsDirectory(), diagnostics.Add);
+        var json = JsonNode.Parse(JsonSerializer.Serialize(MeasurementSettings.Default))!;
+        json["Waterfall"]!["GradientStops"]!.AsArray()[3]!.AsObject().Remove(nameof(ColorStop.LevelDb));
+        await File.WriteAllTextAsync(store.SettingsPath, json.ToJsonString());
+        Assert.Equal(MeasurementSettings.Default, await store.LoadAsync());
+        Assert.Single(diagnostics);
+    }
+
     private static string CreateSettingsDirectory()
     {
         var directory = Path.Combine(Path.GetTempPath(), "AAAnalyzerTests", Guid.NewGuid().ToString("N"));
