@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Media;
 using SystemAudioAnalyzer.App.Settings;
 using SystemAudioAnalyzer.App.ViewModels;
@@ -58,39 +59,77 @@ public sealed class RtaView : FrameworkElement
             settings.ShowPeakHoldCaps, frame.Timestamp);
     }
 
+    private const double LeftGutter = 30;
+    private const double BottomGutter = 16;
+    private const double RightGutter = 4;
+    private const double SegmentPitch = 4;
+
     protected override void OnRender(DrawingContext context)
     {
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(17, 24, 39)), null, new Rect(new Point(), RenderSize));
-        if (_bands.Count == 0 || ActualWidth <= 1 || ActualHeight <= 1) return;
-        for (var step = 0; step <= 8; step++)
+        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(8, 11, 16)), null, new Rect(new Point(), RenderSize));
+        if (_bands.Count == 0 || ActualWidth <= LeftGutter + RightGutter + 1 || ActualHeight <= BottomGutter + 1) return;
+        var rta = Settings.Rta;
+        var plot = new Rect(LeftGutter, 0, ActualWidth - LeftGutter - RightGutter, ActualHeight - BottomGutter);
+        var displayFloor = SpectrumDisplayScale.EffectiveFloor(Settings.Analyzer.DisplayFloorDb, rta.ScaleTopDb - rta.ScaleRangeDb);
+        var range = Math.Max(1, rta.ScaleTopDb - displayFloor);
+        double ToY(double db) => plot.Bottom - (Math.Clamp((db - displayFloor) / range, 0, 1) * plot.Height);
+        var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), 0.5);
+        var textBrush = new SolidColorBrush(Color.FromRgb(150, 165, 180));
+
+        var targetTop = rta.TargetLineDb + (rta.TargetRangeDb / 2);
+        var targetBottom = rta.TargetLineDb - (rta.TargetRangeDb / 2);
+        context.DrawRectangle(_targetBrush, null, new Rect(plot.Left, ToY(targetTop), plot.Width, Math.Max(0, ToY(targetBottom) - ToY(targetTop))));
+
+        foreach (var tick in AxisTicks.RtaDb(rta.ScaleTopDb, range, 10))
         {
-            var y = step * ActualHeight / 8d;
-            context.DrawLine(new Pen(Brushes.DimGray, 0.5), new Point(0, y), new Point(ActualWidth, y));
+            var y = plot.Bottom - (tick.Ratio * plot.Height);
+            context.DrawLine(gridPen, new Point(plot.Left, y), new Point(plot.Right, y));
+            var label = CreateText(tick.Label, 9, textBrush);
+            context.DrawText(label, new Point(LeftGutter - label.Width - 3, Math.Clamp(y - (label.Height / 2), 0, ActualHeight - BottomGutter - label.Height)));
         }
-        var displayFloor = SpectrumDisplayScale.EffectiveFloor(Settings.Analyzer.DisplayFloorDb, Settings.Rta.ScaleTopDb - Settings.Rta.ScaleRangeDb);
-        var range = Math.Max(1, Settings.Rta.ScaleTopDb - displayFloor);
-        var targetTop = Settings.Rta.TargetLineDb + Settings.Rta.TargetRangeDb / 2;
-        var targetBottom = Settings.Rta.TargetLineDb - Settings.Rta.TargetRangeDb / 2;
-        var topY = ActualHeight * Math.Clamp((Settings.Rta.ScaleTopDb - targetTop) / range, 0, 1);
-        var bottomY = ActualHeight * Math.Clamp((Settings.Rta.ScaleTopDb - targetBottom) / range, 0, 1);
-        context.DrawRectangle(_targetBrush, null, new Rect(0, topY, ActualWidth, Math.Max(0, bottomY - topY)));
-        var targetY = ActualHeight * Math.Clamp((Settings.Rta.ScaleTopDb - Settings.Rta.TargetLineDb) / range, 0, 1);
-        context.DrawLine(new Pen(_targetBrush, 1), new Point(0, targetY), new Point(ActualWidth, targetY));
-        var width = ActualWidth / _bands.Count;
+
+        var width = plot.Width / _bands.Count;
+        var barWidth = Math.Max(1, width - 2);
         for (var index = 0; index < _bands.Count; index++)
         {
-            var db = RtaBandAggregator.ApplyTilt(_bands[index].DisplayDb, _bands[index].CenterHz, Settings.Rta.TiltDbPerOctave);
-            var height = Math.Clamp((db - displayFloor) / range, 0, 1) * ActualHeight;
-            var x = index * width + 1;
-            context.DrawRectangle(_barBrush, null, new Rect(x, ActualHeight - height, Math.Max(1, width - 2), height));
-            if (Settings.Rta.ShowPeakHoldCaps)
+            var db = RtaBandAggregator.ApplyTilt(_bands[index].DisplayDb, _bands[index].CenterHz, rta.TiltDbPerOctave);
+            var x = plot.Left + (index * width) + 1;
+            var segments = RtaSegments.Count(plot.Bottom - ToY(db), SegmentPitch);
+            for (var segment = 0; segment < segments; segment++)
             {
-                var peakDb = RtaBandAggregator.ApplyTilt(_bands[index].PeakDb, _bands[index].CenterHz, Settings.Rta.TiltDbPerOctave);
-                var peakY = ActualHeight * Math.Clamp((Settings.Rta.ScaleTopDb - peakDb) / range, 0, 1);
-                context.DrawLine(new Pen(_peakBrush, 1), new Point(x, peakY), new Point(x + Math.Max(1, width - 2), peakY));
+                var segmentDb = displayFloor + (((segment + 0.5) * SegmentPitch / plot.Height) * range);
+                var inTarget = segmentDb >= targetBottom && segmentDb <= targetTop;
+                context.DrawRectangle(inTarget ? _peakBrush : _barBrush, null, new Rect(x, plot.Bottom - ((segment + 1) * SegmentPitch) + 1, barWidth, SegmentPitch - 1));
+            }
+            if (rta.ShowPeakHoldCaps)
+            {
+                var peakDb = RtaBandAggregator.ApplyTilt(_bands[index].PeakDb, _bands[index].CenterHz, rta.TiltDbPerOctave);
+                var capY = plot.Bottom - (RtaSegments.Count(plot.Bottom - ToY(peakDb), SegmentPitch) * SegmentPitch);
+                if (capY < plot.Bottom) context.DrawRectangle(_peakBrush, null, new Rect(x, capY - 2, barWidth, 2));
             }
         }
+
+        var lastRight = double.NegativeInfinity;
+        foreach (var label in AxisTicks.RtaFrequencyLabels())
+        {
+            var nearest = 0;
+            var nearestDistance = double.MaxValue;
+            for (var index = 0; index < _bands.Count; index++)
+            {
+                var distance = Math.Abs(Math.Log(_bands[index].CenterHz / label.Hertz));
+                if (distance < nearestDistance) { nearest = index; nearestDistance = distance; }
+            }
+            var text = CreateText(label.Label, 9, textBrush);
+            var left = Math.Clamp(plot.Left + ((nearest + 0.5) * width) - (text.Width / 2), 0, ActualWidth - text.Width);
+            if (left < lastRight + 4) continue;
+            context.DrawText(text, new Point(left, plot.Bottom + 2));
+            lastRight = left + text.Width;
+        }
     }
+
+    private FormattedText CreateText(string text, double size, Brush brush) =>
+        new(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"), size, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
     private static SolidColorBrush CreateBrush(string color)
     {
