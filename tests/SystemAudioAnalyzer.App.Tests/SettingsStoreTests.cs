@@ -35,6 +35,20 @@ public sealed class SettingsStoreTests
         Assert.Equal(MeasurementSettings.Default, loaded);
     }
 
+    [Fact]
+    public async Task StructurallyIncompleteSettingsReturnDefaultsAndReportFallback()
+    {
+        var directory = CreateSettingsDirectory();
+        var diagnostics = new List<string>();
+        var store = new SettingsStore(directory, diagnostics.Add);
+        await File.WriteAllTextAsync(Path.Combine(directory, "settings.json"), "{}");
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal(MeasurementSettings.Default, loaded);
+        Assert.Single(diagnostics);
+    }
+
     private static string CreateSettingsDirectory()
     {
         var directory = Path.Combine(Path.GetTempPath(), "AAAnalyzerTests", Guid.NewGuid().ToString("N"));

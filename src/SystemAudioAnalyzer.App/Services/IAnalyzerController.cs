@@ -14,5 +14,9 @@ public interface IAnalyzerController
 
     void ResetTruePeak(int channel);
 
+    void ResetTruePeakMaximum(int channel);
+
+    void ResetTruePeakOverload(int channel);
+
     void ResetLoudness();
 }

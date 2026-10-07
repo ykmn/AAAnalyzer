@@ -25,4 +25,15 @@ public sealed class WaterfallLayoutTests
         Assert.Throws<ArgumentOutOfRangeException>(() => WaterfallLayout.Calculate(0, 200));
         Assert.Throws<ArgumentOutOfRangeException>(() => WaterfallLayout.Calculate(200, -1));
     }
+
+    [Theory]
+    [InlineData(0.2, 0.2)]
+    [InlineData(0.8, 0.8)]
+    public void CursorRelativePositionIsEqualWhenEnteredOverEitherStereoPane(double normalized, double expected)
+    {
+        var layout = WaterfallLayout.Calculate(1000, 400);
+
+        Assert.Equal(expected, layout.GetNormalizedX(layout.LeftBounds.X + (layout.LeftBounds.Width * normalized)));
+        Assert.Equal(expected, layout.GetNormalizedX(layout.RightBounds.X + (layout.RightBounds.Width * normalized)));
+    }
 }

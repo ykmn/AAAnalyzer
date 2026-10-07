@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using SystemAudioAnalyzer.App.Services;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.ViewModels;
 
@@ -18,6 +19,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private RtaResolution _rtaResolution = RtaResolution.OneThird;
     private RtaChannelMode _rtaChannelMode = RtaChannelMode.Mono;
     private InstrumentTab _activeTab = InstrumentTab.Waterfall;
+    private MeasurementSettings _measurementSettings = MeasurementSettings.Default;
+    private double _phaseGain = MeasurementSettings.Default.Phase.Gain;
 
     public MainViewModel(IAnalyzerController controller, IEnumerable<OutputDeviceInfo> devices)
     {
@@ -129,7 +132,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public AnalysisFrame? LatestFrame
     {
         get => _latestFrame;
-        set => SetField(ref _latestFrame, value);
+        set
+        {
+            if (SetField(ref _latestFrame, value))
+            {
+                OnPropertyChanged(nameof(CurrentLoudnessText));
+            }
+        }
+    }
+
+    public string CurrentLoudnessText
+    {
+        get
+        {
+            var loudness = LatestFrame?.AdvancedMeasurements?.Loudness;
+            var value = MeasurementSettings.Loudness.Metric switch
+            {
+                LoudnessMetric.Momentary => loudness?.MomentaryLufs,
+                LoudnessMetric.ShortTerm => loudness?.ShortTermLufs,
+                _ => loudness?.IntegratedLufs,
+            };
+            return value.HasValue ? $"{value.Value:0.0} LUFS" : "— LUFS";
+        }
     }
 
     public RtaResolution RtaResolution
@@ -150,6 +174,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _activeTab, value);
     }
 
+    public MeasurementSettings MeasurementSettings
+    {
+        get => _measurementSettings;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (SetField(ref _measurementSettings, value))
+            {
+                RtaResolution = value.Rta.Resolution;
+                RtaChannelMode = value.Rta.Source;
+                PhaseGain = value.Phase.Gain;
+                OnPropertyChanged(nameof(CurrentLoudnessText));
+            }
+        }
+    }
+
+    public double PhaseGain
+    {
+        get => _phaseGain;
+        set => SetField(ref _phaseGain, value);
+    }
+
     public void SelectTab(InstrumentTab tab) => ActiveTab = tab;
 
     public void ResetAllMeasurements()
@@ -159,6 +205,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _controller.ResetLoudness();
         StatusText = "Измерения сброшены.";
     }
+
+    public void ResetTruePeakMaximum(int channel) => _controller.ResetTruePeakMaximum(channel);
+
+    public void ResetTruePeakOverload(int channel) => _controller.ResetTruePeakOverload(channel);
 
     private async Task StartAsync()
     {

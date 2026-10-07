@@ -1,10 +1,12 @@
 using System.Windows.Media;
+using SystemAudioAnalyzer.App.Settings;
 using SystemAudioAnalyzer.App.ViewModels;
 
 namespace SystemAudioAnalyzer.App.Rendering;
 
 public sealed class RtaView : FrameworkElement
 {
+    public static readonly DependencyProperty SettingsProperty = DependencyProperty.Register(nameof(Settings), typeof(MeasurementSettings), typeof(RtaView), new FrameworkPropertyMetadata(MeasurementSettings.Default, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty FrameProperty = DependencyProperty.Register(nameof(Frame), typeof(AnalysisFrame), typeof(RtaView), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty ResolutionProperty = DependencyProperty.Register(nameof(Resolution), typeof(RtaResolution), typeof(RtaView), new FrameworkPropertyMetadata(RtaResolution.OneThird, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty ChannelModeProperty = DependencyProperty.Register(nameof(ChannelMode), typeof(RtaChannelMode), typeof(RtaView), new FrameworkPropertyMetadata(RtaChannelMode.Mono, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -12,6 +14,7 @@ public sealed class RtaView : FrameworkElement
     public AnalysisFrame? Frame { get => (AnalysisFrame?)GetValue(FrameProperty); set => SetValue(FrameProperty, value); }
     public RtaResolution Resolution { get => (RtaResolution)GetValue(ResolutionProperty); set => SetValue(ResolutionProperty, value); }
     public RtaChannelMode ChannelMode { get => (RtaChannelMode)GetValue(ChannelModeProperty); set => SetValue(ChannelModeProperty, value); }
+    public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
 
     protected override void OnRender(DrawingContext context)
     {
@@ -24,14 +27,15 @@ public sealed class RtaView : FrameworkElement
             var y = step * ActualHeight / 8d;
             context.DrawLine(new Pen(Brushes.DimGray, 0.5), new Point(0, y), new Point(ActualWidth, y));
         }
-        var targetY = ActualHeight * 0.45;
+        var range = Math.Max(1, Settings.Rta.ScaleRangeDb);
+        var targetY = ActualHeight * Math.Clamp((Settings.Rta.ScaleTopDb - Settings.Rta.TargetLineDb) / range, 0, 1);
         context.DrawLine(new Pen(Brushes.IndianRed, 1), new Point(0, targetY), new Point(ActualWidth, targetY));
         var bands = RtaBandAggregator.Aggregate(spectrum, Resolution);
         var width = ActualWidth / bands.Count;
         for (var index = 0; index < bands.Count; index++)
         {
             var db = 20 * Math.Log10(Math.Max(bands[index].Magnitude, 0.000001f));
-            var height = Math.Clamp((db + 80) / 80, 0, 1) * ActualHeight;
+            var height = Math.Clamp((db - (Settings.Rta.ScaleTopDb - range)) / range, 0, 1) * ActualHeight;
             context.DrawRectangle(Brushes.DodgerBlue, null, new Rect(index * width + 1, ActualHeight - height, Math.Max(1, width - 2), height));
         }
     }

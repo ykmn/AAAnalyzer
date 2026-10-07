@@ -1,10 +1,12 @@
 using System.Windows.Input;
 using System.Windows.Media;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Rendering;
 
 public sealed class WaterfallView : FrameworkElement
 {
+    public static readonly DependencyProperty SettingsProperty = DependencyProperty.Register(nameof(Settings), typeof(MeasurementSettings), typeof(WaterfallView), new FrameworkPropertyMetadata(MeasurementSettings.Default, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty FrameProperty = DependencyProperty.Register(
         nameof(Frame), typeof(AnalysisFrame), typeof(WaterfallView),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
@@ -23,6 +25,8 @@ public sealed class WaterfallView : FrameworkElement
         set => SetValue(FrameProperty, value);
     }
 
+    public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
+
     public void Reset()
     {
         _history.Clear();
@@ -35,8 +39,9 @@ public sealed class WaterfallView : FrameworkElement
         if (ActualWidth <= 1 || ActualHeight <= 1) return;
         var layout = WaterfallLayout.Calculate(ActualWidth, Math.Max(1, ActualHeight - 30));
         var rows = _history.GetVisibleRows(DateTimeOffset.UtcNow);
-        DrawRows(context, rows, layout.LeftBounds, true);
-        DrawRows(context, rows, layout.RightBounds, false);
+        var now = DateTimeOffset.UtcNow;
+        DrawRows(context, rows, layout.LeftBounds, true, now);
+        DrawRows(context, rows, layout.RightBounds, false, now);
         context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(layout.RightBounds.Left, layout.LeftBounds.Top), new Point(layout.RightBounds.Left, layout.LeftBounds.Bottom));
         DrawCursor(context, layout.LeftBounds);
         DrawCursor(context, layout.RightBounds);
@@ -45,7 +50,10 @@ public sealed class WaterfallView : FrameworkElement
         {
             var x = FrequencyScale.ToNormalized(hertz) * layout.LeftBounds.Width;
             context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(x, layout.LeftBounds.Bottom), new Point(x, layout.LeftBounds.Bottom + 4));
-            DrawText(context, FrequencyScale.Format(hertz), x + 2, layout.LeftBounds.Bottom + 5, 9, Brushes.LightGray);
+            var label = FormatTick(hertz);
+            var labelWidth = label.Length * 5.4;
+            var labelX = hertz >= 10_000 ? x - labelWidth - 2 : x + 2;
+            DrawText(context, label, labelX, layout.LeftBounds.Bottom + 5, 9, Brushes.LightGray);
         }
     }
 
@@ -61,20 +69,29 @@ public sealed class WaterfallView : FrameworkElement
         InvalidateVisual();
     }
 
-    private void DrawRows(DrawingContext context, IReadOnlyList<WaterfallRow> rows, Rect bounds, bool left)
+    private void DrawRows(DrawingContext context, IReadOnlyList<WaterfallRow> rows, Rect bounds, bool left, DateTimeOffset now)
     {
         if (rows.Count == 0) return;
-        var height = bounds.Height / rows.Count;
         for (var row = 0; row < rows.Count; row++)
         {
+            var ageSeconds = Math.Clamp((now - rows[row].Timestamp).TotalSeconds, 0, 10);
+            var y = bounds.Bottom - (ageSeconds / 10d * bounds.Height);
+            var rowHeight = Math.Max(1, bounds.Height / 300d);
             var values = left ? rows[row].Left : rows[row].Right;
             for (var x = 0; x < 96; x++)
             {
-                var index = Math.Min(values.Count - 1, (int)((long)x * values.Count / 96));
-                var intensity = values.Count == 0 ? 0 : Math.Clamp(values[index] * 15, 0, 1);
-                var brush = new SolidColorBrush(Color.FromRgb((byte)(12 + intensity * 220), (byte)(20 + intensity * 160), (byte)(45 + intensity * 170)));
+                var lowerHertz = FrequencyScale.ToHertz((double)x / 96);
+                var upperHertz = FrequencyScale.ToHertz((double)(x + 1) / 96);
+                var firstBin = Math.Max(0, (int)Math.Floor(lowerHertz * rows[row].FftSize / rows[row].SampleRate));
+                var lastBin = Math.Min(values.Count - 1, (int)Math.Ceiling(upperHertz * rows[row].FftSize / rows[row].SampleRate));
+                var magnitude = 0f;
+                for (var bin = firstBin; bin <= lastBin; bin++) magnitude = Math.Max(magnitude, values[bin]);
+                var db = values.Count == 0 ? Settings.Waterfall.DisplayFloorDb : 20 * Math.Log10(Math.Max(magnitude, 0.000001f)) + Settings.Waterfall.DisplayOffsetDb;
+                var intensity = Math.Clamp((db - Settings.Waterfall.DisplayFloorDb) / Math.Max(1, 0 - Settings.Waterfall.DisplayFloorDb), 0, 1);
+                var baseColor = (Color)ColorConverter.ConvertFromString(Settings.Waterfall.PaletteColor);
+                var brush = new SolidColorBrush(Color.FromRgb((byte)(baseColor.R * intensity), (byte)(baseColor.G * intensity), (byte)(baseColor.B * intensity)));
                 brush.Freeze();
-                context.DrawRectangle(brush, null, new Rect(bounds.Left + x * bounds.Width / 96, bounds.Top + row * height, bounds.Width / 96 + 1, height + 1));
+                context.DrawRectangle(brush, null, new Rect(bounds.Left + x * bounds.Width / 96, y - rowHeight, bounds.Width / 96 + 1, rowHeight + 0.2));
             }
         }
     }
@@ -88,4 +105,10 @@ public sealed class WaterfallView : FrameworkElement
     private void DrawText(DrawingContext context, string text, double x, double y, double size, Brush brush) =>
         context.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface("Segoe UI"), size, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(x, y));
+
+    private static string FormatTick(double hertz) => hertz switch
+    {
+        < 1_000 => hertz.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " Hz",
+        _ => (hertz / 1_000).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "k",
+    };
 }

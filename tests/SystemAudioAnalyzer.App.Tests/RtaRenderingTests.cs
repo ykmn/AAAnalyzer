@@ -42,4 +42,14 @@ public sealed class RtaRenderingTests
         Assert.Equal(normalized, (leftX - layout.LeftBounds.Left) / layout.LeftBounds.Width, 6);
         Assert.Equal(normalized, (rightX - layout.RightBounds.Left) / layout.RightBounds.Width, 6);
     }
+
+    [Fact]
+    public void PhaseScopeViewportRemainsSquareInsideWidePanel()
+    {
+        var viewport = PhaseScopeTransform.CalculateViewport(900, 400);
+
+        Assert.Equal(viewport.Width, viewport.Height);
+        Assert.Equal(250, viewport.X);
+        Assert.Equal(0, viewport.Y);
+    }
 }

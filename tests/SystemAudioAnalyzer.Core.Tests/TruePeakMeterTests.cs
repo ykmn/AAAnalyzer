@@ -40,6 +40,32 @@ public sealed class TruePeakMeterTests
         Assert.Null(exception);
     }
 
+    [Fact]
+    public void ResetMaximumPreservesTheOverloadLatch()
+    {
+        var meter = new TruePeakMeter();
+        meter.Process([1.1f, 0.2f], channels: 1);
+
+        meter.ResetMaximum(channel: 0);
+        var afterReset = meter.Process([0.3f], channels: 1);
+
+        Assert.InRange(afterReset.Maximum[0], 0.29f, 0.31f);
+        Assert.True(afterReset.Overload[0]);
+    }
+
+    [Fact]
+    public void ResetOverloadPreservesTheMaximum()
+    {
+        var meter = new TruePeakMeter();
+        meter.Process([1.1f, 0.2f], channels: 1);
+
+        meter.ResetOverload(channel: 0);
+        var afterReset = meter.Process([0.3f], channels: 1);
+
+        Assert.True(afterReset.Maximum[0] >= 1.1f);
+        Assert.False(afterReset.Overload[0]);
+    }
+
     private static float[] CreateSineWave(int frequencyHz, int sampleRate, int frames, float phaseRadians)
     {
         var samples = new float[frames];

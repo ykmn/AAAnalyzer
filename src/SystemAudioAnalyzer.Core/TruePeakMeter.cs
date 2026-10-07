@@ -56,6 +56,26 @@ public sealed class TruePeakMeter
         _overload[channel] = false;
     }
 
+    public void ResetMaximum(int channel)
+    {
+        ValidateChannel(channel);
+        _maximum[channel] = 0f;
+    }
+
+    public void ResetOverload(int channel)
+    {
+        ValidateChannel(channel);
+        _overload[channel] = false;
+    }
+
+    private void ValidateChannel(int channel)
+    {
+        if (_maximum.Length == 0 || channel < 0 || channel >= _maximum.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(channel));
+        }
+    }
+
     private void EnsureChannels(int channels)
     {
         if (_maximum.Length == channels)

@@ -66,6 +66,10 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
 
     public void ResetTruePeak(int channel) => _engine.ResetTruePeak(channel);
 
+    public void ResetTruePeakMaximum(int channel) => _engine.ResetTruePeakMaximum(channel);
+
+    public void ResetTruePeakOverload(int channel) => _engine.ResetTruePeakOverload(channel);
+
     public void ResetLoudness() => _engine.ResetLoudness();
 
     public async ValueTask DisposeAsync()

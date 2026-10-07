@@ -2,6 +2,12 @@ namespace SystemAudioAnalyzer.App.Rendering;
 
 public sealed record WaterfallLayout(Rect LeftBounds, Rect RightBounds)
 {
+    public double GetNormalizedX(double x)
+    {
+        var bounds = x <= LeftBounds.Right ? LeftBounds : RightBounds;
+        return Math.Clamp((x - bounds.Left) / bounds.Width, 0d, 1d);
+    }
+
     public static WaterfallLayout Calculate(double availableWidth, double availableHeight)
     {
         if (availableWidth <= 0)

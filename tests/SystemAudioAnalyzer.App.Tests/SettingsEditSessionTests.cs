@@ -1,4 +1,5 @@
 using SystemAudioAnalyzer.App.Settings;
+using SystemAudioAnalyzer.App.ViewModels;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
@@ -29,5 +30,27 @@ public sealed class SettingsEditSessionTests
 
         Assert.Equal(edited, applied);
         Assert.Equal(edited, session.Current);
+    }
+
+    [Fact]
+    public void CancelAfterApplyRestoresTheOpeningSnapshot()
+    {
+        var opening = MeasurementSettings.Default;
+        var session = new SettingsEditSession(opening);
+        var edited = opening with { Waterfall = opening.Waterfall with { DisplayOffsetDb = 4 } };
+        session.Replace(edited);
+        session.Apply();
+
+        Assert.Equal(opening, session.Cancel());
+    }
+
+    [Fact]
+    public void EditingWaterfallFloorUpdatesTheSettingsSnapshot()
+    {
+        var viewModel = new SettingsDialogViewModel(new SettingsStore(Path.GetTempPath()), MeasurementSettings.Default, InstrumentTab.Waterfall);
+
+        viewModel.WaterfallFloorDb = -90;
+
+        Assert.Equal(-90, viewModel.Current.Waterfall.DisplayFloorDb);
     }
 }

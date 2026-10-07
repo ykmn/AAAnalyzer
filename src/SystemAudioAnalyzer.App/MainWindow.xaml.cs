@@ -10,12 +10,32 @@ public partial class MainWindow : Window
 {
     private readonly IScreenshotService _screenshotService = new ScreenshotService(AppContext.BaseDirectory);
     private readonly AppLogger _logger = new(AppContext.BaseDirectory);
-    private readonly SettingsStore _settingsStore = new();
+    private readonly SettingsStore _settingsStore;
     public MainWindow()
     {
         InitializeComponent();
+        MeterRail.ResetRequested += ResetMeterRailValue;
+        _settingsStore = new SettingsStore(diagnostic: _logger.Write);
         var provider = new NaudioAudioOutputDeviceProvider();
         DataContext = new MainViewModel(new AnalyzerController(), provider.GetActiveDevices());
+        Loaded += LoadSettingsAsync;
+    }
+
+    private void ResetMeterRailValue(object? sender, Rendering.MeterRailResetEventArgs eventArgs)
+    {
+        if (DataContext is not MainViewModel viewModel) return;
+        if (eventArgs.Target == Rendering.MeterRailResetTarget.Maximum)
+            viewModel.ResetTruePeakMaximum(eventArgs.Channel);
+        else
+            viewModel.ResetTruePeakOverload(eventArgs.Channel);
+    }
+
+    private async void LoadSettingsAsync(object sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.MeasurementSettings = await _settingsStore.LoadAsync();
+        }
     }
 
     private void SetRtaResolution(object sender, RoutedEventArgs eventArgs)
@@ -69,7 +89,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new SettingsWindow(new SettingsDialogViewModel(_settingsStore, MeasurementSettings.Default, page)) { Owner = this };
+        if (DataContext is not MainViewModel mainViewModel)
+        {
+            return;
+        }
+
+        var dialog = new SettingsWindow(new SettingsDialogViewModel(_settingsStore, mainViewModel.MeasurementSettings, page)) { Owner = this };
+        dialog.SettingsApplied += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
+        dialog.SettingsCancelled += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
         dialog.ShowDialog();
     }
 }

@@ -1,6 +1,6 @@
 namespace SystemAudioAnalyzer.App.Rendering;
 
-public sealed record WaterfallRow(DateTimeOffset Timestamp, IReadOnlyList<float> Left, IReadOnlyList<float> Right);
+public sealed record WaterfallRow(DateTimeOffset Timestamp, IReadOnlyList<float> Left, IReadOnlyList<float> Right, int SampleRate, int FftSize);
 
 public sealed class WaterfallHistory
 {
@@ -17,12 +17,12 @@ public sealed class WaterfallHistory
         _visibleDuration = visibleDuration;
     }
 
-    public void Append(DateTimeOffset timestamp, IReadOnlyList<float> left, IReadOnlyList<float> right)
+    public void Append(DateTimeOffset timestamp, IReadOnlyList<float> left, IReadOnlyList<float> right, int sampleRate = 48_000, int fftSize = 4_096)
     {
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
 
-        _rows.Add(new WaterfallRow(timestamp, left.ToArray(), right.ToArray()));
+        _rows.Add(new WaterfallRow(timestamp, left.ToArray(), right.ToArray(), sampleRate, fftSize));
         Trim(timestamp);
     }
 
@@ -36,7 +36,7 @@ public sealed class WaterfallHistory
             return;
         }
 
-        Append(frame.Timestamp, stereoSpectrum.Left.Magnitudes, stereoSpectrum.Right.Magnitudes);
+        Append(frame.Timestamp, stereoSpectrum.Left.Magnitudes, stereoSpectrum.Right.Magnitudes, frame.Format.SampleRate, stereoSpectrum.Left.FftSize);
     }
 
     public IReadOnlyList<WaterfallRow> GetVisibleRows(DateTimeOffset now)

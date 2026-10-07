@@ -30,6 +30,8 @@ public sealed class WorkspaceLayoutTests
         public Task StartAsync(SourceSelection selection, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public void ResetTruePeak(int channel) { }
+        public void ResetTruePeakMaximum(int channel) { }
+        public void ResetTruePeakOverload(int channel) { }
         public void ResetLoudness() { }
     }
 }

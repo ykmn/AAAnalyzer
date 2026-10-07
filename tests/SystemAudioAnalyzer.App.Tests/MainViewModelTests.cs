@@ -1,6 +1,7 @@
 using SystemAudioAnalyzer.App.Services;
 using SystemAudioAnalyzer.App.ViewModels;
 using SystemAudioAnalyzer.Core;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
@@ -96,6 +97,21 @@ public sealed class MainViewModelTests
         Assert.Equal(1, controller.ResetLoudnessCount);
     }
 
+    [Fact]
+    public void ApplyingMeasurementSettingsUpdatesRtaControls()
+    {
+        var viewModel = CreateViewModel();
+        var settings = MeasurementSettings.Default with
+        {
+            Rta = MeasurementSettings.Default.Rta with { Resolution = RtaResolution.OneTwelfth, Source = RtaChannelMode.Right },
+        };
+
+        viewModel.MeasurementSettings = settings;
+
+        Assert.Equal(RtaResolution.OneTwelfth, viewModel.RtaResolution);
+        Assert.Equal(RtaChannelMode.Right, viewModel.RtaChannelMode);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 
@@ -126,6 +142,8 @@ public sealed class MainViewModelTests
         }
 
         public void ResetTruePeak(int channel) => ResetTruePeakChannels.Add(channel);
+        public void ResetTruePeakMaximum(int channel) { }
+        public void ResetTruePeakOverload(int channel) { }
 
         public void ResetLoudness() => ResetLoudnessCount++;
 
@@ -148,6 +166,8 @@ public sealed class MainViewModelTests
         public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public void ResetTruePeak(int channel) { }
+        public void ResetTruePeakMaximum(int channel) { }
+        public void ResetTruePeakOverload(int channel) { }
 
         public void ResetLoudness() { }
 

@@ -65,6 +65,16 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         }
     }
 
+    public void ResetTruePeakMaximum(int channel)
+    {
+        lock (_measurementGate) { _truePeakMeter.ResetMaximum(channel); }
+    }
+
+    public void ResetTruePeakOverload(int channel)
+    {
+        lock (_measurementGate) { _truePeakMeter.ResetOverload(channel); }
+    }
+
     public void ResetLoudness()
     {
         lock (_measurementGate)
