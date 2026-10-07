@@ -1,4 +1,5 @@
 using System.Windows.Media;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Rendering;
 
@@ -9,6 +10,9 @@ public sealed class RealtimeAnalyzerView : FrameworkElement
         typeof(AnalysisFrame),
         typeof(RealtimeAnalyzerView),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
+    public static readonly DependencyProperty SettingsProperty = DependencyProperty.Register(
+        nameof(Settings), typeof(MeasurementSettings), typeof(RealtimeAnalyzerView),
+        new FrameworkPropertyMetadata(MeasurementSettings.Default, FrameworkPropertyMetadataOptions.AffectsRender));
 
     private readonly WaterfallRenderer _waterfall = new();
 
@@ -17,6 +21,8 @@ public sealed class RealtimeAnalyzerView : FrameworkElement
         get => (AnalysisFrame?)GetValue(FrameProperty);
         set => SetValue(FrameProperty, value);
     }
+
+    public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
 
     protected override void OnRender(DrawingContext drawingContext)
     {
@@ -29,7 +35,7 @@ public sealed class RealtimeAnalyzerView : FrameworkElement
         }
 
         var rtaHeight = ActualHeight * 0.35;
-        RtaRenderer.Render(drawingContext, frame, new Rect(0, 0, ActualWidth, rtaHeight));
+        RtaRenderer.Render(drawingContext, frame, new Rect(0, 0, ActualWidth, rtaHeight), Settings.Analyzer);
         var waterfallHeight = ActualHeight - rtaHeight - 24;
         if (waterfallHeight <= 0)
         {
@@ -44,7 +50,7 @@ public sealed class RealtimeAnalyzerView : FrameworkElement
         };
         drawingContext.DrawText(CreateText("L", layout.LeftBounds.Left + 8, rtaHeight + 4), new Point(layout.LeftBounds.Left + 8, rtaHeight + 3));
         drawingContext.DrawText(CreateText("R", layout.RightBounds.Left + 8, rtaHeight + 4), new Point(layout.RightBounds.Left + 8, rtaHeight + 3));
-        _waterfall.Render(drawingContext, layout);
+        _waterfall.Render(drawingContext, layout, Settings);
     }
 
     private static void OnFrameChanged(DependencyObject target, DependencyPropertyChangedEventArgs arguments)

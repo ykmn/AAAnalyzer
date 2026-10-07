@@ -1,4 +1,5 @@
 using SystemAudioAnalyzer.App.Rendering;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
@@ -19,5 +20,21 @@ public sealed class FrequencyScaleTests
         var normalized = FrequencyScale.ToNormalized(1_000);
 
         Assert.InRange(FrequencyScale.ToHertz(normalized), 999.9, 1_000.1);
+    }
+
+    [Fact]
+    public void LinearScaleMapsFrequencyEndpointsAndMidpointToSharedNormalizedCoordinates()
+    {
+        Assert.Equal(0, FrequencyScale.ToNormalized(20, AnalyzerFrequencyScale.Linear), 6);
+        Assert.Equal(0.5, FrequencyScale.ToNormalized(10_010, AnalyzerFrequencyScale.Linear), 6);
+        Assert.Equal(1, FrequencyScale.ToNormalized(20_000, AnalyzerFrequencyScale.Linear), 6);
+        Assert.Equal(10_010, FrequencyScale.ToHertz(0.5, AnalyzerFrequencyScale.Linear), 6);
+    }
+
+    [Fact]
+    public void LogarithmicScaleRetainsOctaveBasedMapping()
+    {
+        Assert.Equal(0.5, FrequencyScale.ToNormalized(632.455532, AnalyzerFrequencyScale.Logarithmic), 5);
+        Assert.Equal(632.455532, FrequencyScale.ToHertz(0.5, AnalyzerFrequencyScale.Logarithmic), 5);
     }
 }

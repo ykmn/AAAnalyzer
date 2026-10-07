@@ -52,4 +52,70 @@ public sealed class RtaRenderingTests
         Assert.Equal(250, viewport.X);
         Assert.Equal(0, viewport.Y);
     }
+
+    [Fact]
+    public void PhaseGainKeepsTransformedCoordinatesInsideSafeViewport()
+    {
+        var gained = PhaseScopeTransform.Transform(1f, 1f, 4);
+
+        Assert.InRange(gained.X, -1, 1);
+        Assert.InRange(gained.Y, -1, 1);
+    }
+
+    [Fact]
+    public void RtaRollingAverageUsesOnlyConfiguredNumberOfRecentSpectra()
+    {
+        var aggregator = new RtaBandAggregator();
+        var now = DateTimeOffset.Parse("2026-10-07T12:00:00Z");
+
+        var first = aggregator.Update(CreateSpectrum(1), RtaResolution.One, RtaChannelMode.Mono, 2, 100, 1_000, true, now);
+        var second = aggregator.Update(CreateSpectrum(3), RtaResolution.One, RtaChannelMode.Mono, 2, 100, 1_000, true, now.AddSeconds(1));
+        var third = aggregator.Update(CreateSpectrum(5), RtaResolution.One, RtaChannelMode.Mono, 2, 100, 1_000, true, now.AddSeconds(2));
+
+        Assert.Equal(1, first.Single(band => band.CenterHz == 1_000).Magnitude);
+        Assert.Equal(2, second.Single(band => band.CenterHz == 1_000).Magnitude, 5);
+        Assert.Equal(4, third.Single(band => band.CenterHz == 1_000).Magnitude, 5);
+    }
+
+    [Theory]
+    [InlineData(1_000, 0)]
+    [InlineData(2_000, 3)]
+    [InlineData(500, -3)]
+    public void RtaTiltIsZeroAtOneKilohertzAndChangesByOctaves(double frequency, double expectedDb)
+    {
+        Assert.Equal(expectedDb, RtaBandAggregator.ApplyTilt(0, frequency, 3), 6);
+    }
+
+    [Fact]
+    public void RtaReleaseDecaysInDbPerSecondAndPeakCapExpires()
+    {
+        var aggregator = new RtaBandAggregator();
+        var now = DateTimeOffset.Parse("2026-10-07T12:00:00Z");
+        aggregator.Update(CreateSpectrum(1), RtaResolution.One, RtaChannelMode.Mono, 1, 3, 500, true, now);
+
+        var next = aggregator.Update(CreateSpectrum(0.5f), RtaResolution.One, RtaChannelMode.Mono, 1, 3, 500, true, now.AddSeconds(1));
+        var band = next.Single(value => value.CenterHz == 1_000);
+
+        Assert.Equal(-3, band.DisplayDb, 5);
+        Assert.Equal(-3, band.PeakDb, 5);
+    }
+
+    [Fact]
+    public void RtaSourceChangeClearsIncompatibleRollingSpectrumHistory()
+    {
+        var aggregator = new RtaBandAggregator();
+        var now = DateTimeOffset.Parse("2026-10-07T12:00:00Z");
+        aggregator.Update(CreateSpectrum(1), RtaResolution.One, RtaChannelMode.Left, 2, 100, 1_000, true, now);
+
+        var changed = aggregator.Update(CreateSpectrum(0.5f), RtaResolution.One, RtaChannelMode.Right, 2, 100, 1_000, true, now.AddMilliseconds(20));
+
+        Assert.Equal(0.5, changed.Single(band => band.CenterHz == 1_000).Magnitude, 5);
+    }
+
+    private static Spectrum CreateSpectrum(float magnitude)
+    {
+        var values = new float[24_001];
+        values[1_000] = magnitude;
+        return new Spectrum(48_000, 48_000, values);
+    }
 }

@@ -32,6 +32,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StopCommand = new AsyncCommand(StopAsync, () => IsAnalyzing);
         _controller.FrameAvailable += OnFrameAvailable;
         _controller.SourceStateChanged += OnSourceStateChanged;
+        ApplyEngineSettings(_measurementSettings);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -196,7 +197,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ArgumentNullException.ThrowIfNull(value);
             if (SetField(ref _measurementSettings, value))
             {
-                _controller.SetLoudnessIntegratedWindow(value.Meters.IntegratedWindowSeconds);
+                ApplyEngineSettings(value);
                 RtaResolution = value.Rta.Resolution;
                 RtaChannelMode = value.Rta.Source;
                 PhaseGain = value.Phase.Gain;
@@ -321,6 +322,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(ValidationMessage));
         StartCommand.RaiseCanExecuteChanged();
+    }
+
+    private void ApplyEngineSettings(MeasurementSettings settings)
+    {
+        var window = settings.Analyzer.WindowFunction switch
+        {
+            AnalyzerWindowFunction.Rectangular => SpectrumWindow.Rectangular,
+            AnalyzerWindowFunction.Hann => SpectrumWindow.Hann,
+            AnalyzerWindowFunction.Hamming => SpectrumWindow.Hamming,
+            AnalyzerWindowFunction.Blackman => SpectrumWindow.Blackman,
+            _ => throw new ArgumentOutOfRangeException(nameof(settings), "Analyzer window function is not supported."),
+        };
+        _controller.SetAnalysisConfiguration(new AnalysisConfiguration(settings.Analyzer.FftSize, window));
+        _controller.SetLoudnessIntegratedWindow(settings.Meters.IntegratedWindowSeconds);
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

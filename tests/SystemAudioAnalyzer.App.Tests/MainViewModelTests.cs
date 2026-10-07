@@ -130,6 +130,27 @@ public sealed class MainViewModelTests
         Assert.Equal(120, controller.IntegratedWindowSeconds);
     }
 
+    [Fact]
+    public void ApplyingMeasurementSettingsForwardsFftAndWindowWithoutRestartingSource()
+    {
+        var controller = new FakeAnalyzerController();
+        var viewModel = new MainViewModel(controller, [new OutputDeviceInfo("default", "Speakers", true)]);
+        var settings = MeasurementSettings.Default with
+        {
+            Analyzer = MeasurementSettings.Default.Analyzer with
+            {
+                FftSize = 8192,
+                WindowFunction = AnalyzerWindowFunction.Hamming,
+            },
+        };
+
+        viewModel.MeasurementSettings = settings;
+
+        Assert.Equal(new AnalysisConfiguration(8192, SpectrumWindow.Hamming), controller.LastAnalysisConfiguration);
+        Assert.Equal(0, controller.StartCount);
+        Assert.Equal(0, controller.StopCount);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 
@@ -147,6 +168,7 @@ public sealed class MainViewModelTests
 
         public int StopCount { get; private set; }
         public int IntegratedWindowSeconds { get; private set; }
+        public AnalysisConfiguration? LastAnalysisConfiguration { get; private set; }
 
         public Task StartAsync(SourceSelection selection, CancellationToken cancellationToken = default)
         {
@@ -166,7 +188,7 @@ public sealed class MainViewModelTests
 
         public void ResetLoudness() => ResetLoudnessCount++;
 
-        public void SetAnalysisConfiguration(AnalysisConfiguration configuration) { }
+        public void SetAnalysisConfiguration(AnalysisConfiguration configuration) => LastAnalysisConfiguration = configuration;
         public void SetLoudnessIntegratedWindow(int seconds) => IntegratedWindowSeconds = seconds;
 
         public void PublishFrame(AnalysisFrame frame) => FrameAvailable?.Invoke(this, frame);

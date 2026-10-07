@@ -1,4 +1,6 @@
 using SystemAudioAnalyzer.App.Rendering;
+using SystemAudioAnalyzer.App.Settings;
+using System.Windows.Media;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
@@ -35,5 +37,19 @@ public sealed class WaterfallLayoutTests
 
         Assert.Equal(expected, layout.GetNormalizedX(layout.LeftBounds.X + (layout.LeftBounds.Width * normalized)));
         Assert.Equal(expected, layout.GetNormalizedX(layout.RightBounds.X + (layout.RightBounds.Width * normalized)));
+    }
+
+    [Fact]
+    public void WaterfallGradientSamplingAppliesOffsetAndClampsAtConfiguredFloor()
+    {
+        var stops = new[] { new ColorStop(-110, "#000000"), new ColorStop(-80, "#0080C0"), new ColorStop(-55, "#00FF39") };
+
+        var floor = WaterfallRenderer.SampleColor(-120, -100, 0, stops);
+        var midpoint = WaterfallRenderer.SampleColor(-90, -100, 0, stops);
+        var offset = WaterfallRenderer.SampleColor(-95, -100, 5, stops);
+
+        Assert.Equal(Color.FromRgb(0, 43, 64), floor);
+        Assert.Equal(Color.FromRgb(0, 85, 128), midpoint);
+        Assert.Equal(midpoint, offset);
     }
 }

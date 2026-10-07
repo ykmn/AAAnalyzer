@@ -6,14 +6,16 @@ public static class PhaseScopeTransform
 
     public static Point Transform(float left, float right, double gain)
     {
-        if (gain <= 0)
+        if (!double.IsFinite(gain) || gain <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(gain));
         }
 
+        var x = (left - right) * gain * InverseRootTwo;
+        var y = (left + right) * gain * InverseRootTwo;
         return new Point(
-            (left - right) * gain * InverseRootTwo,
-            (left + right) * gain * InverseRootTwo);
+            double.IsFinite(x) ? Math.Clamp(x, -1d, 1d) : 0d,
+            double.IsFinite(y) ? Math.Clamp(y, -1d, 1d) : 0d);
     }
 
     public static Rect CalculateViewport(double availableWidth, double availableHeight)
