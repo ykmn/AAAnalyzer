@@ -2,26 +2,134 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:rendering="clr-namespace:SystemAudioAnalyzer.App.Rendering"
-        Title="AA Analyzer" Width="1440" Height="900" MinWidth="900" MinHeight="650" Background="#111827" Foreground="#E5E7EB">
-    <Window.Resources><BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" /></Window.Resources>
-    <Grid Margin="16">
+        xmlns:vm="clr-namespace:SystemAudioAnalyzer.App.ViewModels"
+        Title="AA Analyzer" Width="1440" Height="900" MinWidth="900" MinHeight="650" Background="#0B0F14" Foreground="#E5E7EB">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <vm:ValueMatchConverter x:Key="Match" />
+        <Style x:Key="PaneBase" TargetType="Grid">
+            <Setter Property="Visibility" Value="Hidden" />
+            <Setter Property="Background" Value="#080B10" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="8">
         <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0">
-            <TextBlock Text="AA" FontSize="22" FontWeight="Bold" /><TextBlock Text="ANALYZER" FontSize="10" Foreground="#9CA3AF" Margin="0,0,0,18" />
-            <TextBlock Text="ИСТОЧНИК" Foreground="#9CA3AF" FontSize="10" />
-            <RadioButton Content="Устройство" GroupName="SourceMode" IsChecked="{Binding IsDeviceMode}" FontSize="10" /><RadioButton Content="Поток" GroupName="SourceMode" IsChecked="{Binding IsStreamMode}" FontSize="10" />
-            <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" DisplayMemberPath="Name" Height="28" FontSize="10" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
-            <TextBox Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}" Height="28" FontSize="10" Visibility="{Binding IsStreamMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
-            <Button Content="СТАРТ" Command="{Binding StartCommand}" Height="30" Margin="0,10,0,0" FontSize="10" /><Button Content="СТОП" Command="{Binding StopCommand}" Height="26" Margin="0,5,0,0" FontSize="10" />
-            <Separator Margin="0,18,0,10" /><TextBlock Text="TRUE PEAK" Foreground="#9CA3AF" FontSize="10" /><rendering:MeterRailView x:Name="MeterRail" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" Height="320" Margin="0,6,0,0" />
-        </StackPanel>
-        <TabControl Grid.Column="2" Background="#0B1220" BorderThickness="0">
-            <TabItem Header="WATERFALL"><Grid x:Name="WaterfallPane" Background="#0B1220"><Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="*"/></Grid.RowDefinitions><DockPanel Margin="14,8"><TextBlock Text="WATERFALL · L / R · 10 s" FontWeight="SemiBold"/><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="СБРОС" Click="ResetPane"/><Button Content="PNG" Tag="WaterfallPane" Click="SaveScreenshot"/><Button Content="НАСТРОЙКИ" Tag="Waterfall" Click="OpenSettings"/></StackPanel></DockPanel><rendering:WaterfallView x:Name="WaterfallView" Grid.Row="1" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}"/></Grid></TabItem>
-            <TabItem Header="RTA"><Grid x:Name="RtaPane" Background="#0B1220"><Grid.RowDefinitions><RowDefinition Height="76"/><RowDefinition Height="*"/></Grid.RowDefinitions><StackPanel Margin="14,8"><DockPanel><TextBlock Text="RTA" FontWeight="SemiBold"/><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="СБРОС" Click="ResetPane"/><Button Content="PNG" Tag="RtaPane" Click="SaveScreenshot"/><Button Content="НАСТРОЙКИ" Tag="Rta" Click="OpenSettings"/></StackPanel></DockPanel><StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button Content="1/1" Tag="One" Click="SetRtaResolution"/><Button Content="1/3" Tag="OneThird" Click="SetRtaResolution"/><Button Content="1/6" Tag="OneSixth" Click="SetRtaResolution"/><Button Content="1/12" Tag="OneTwelfth" Click="SetRtaResolution"/><RadioButton Content="Mono" IsChecked="{Binding IsRtaMono, Mode=TwoWay}" Margin="16,0,0,0"/><RadioButton Content="L" IsChecked="{Binding IsRtaLeft, Mode=TwoWay}"/><RadioButton Content="R" IsChecked="{Binding IsRtaRight, Mode=TwoWay}"/></StackPanel></StackPanel><rendering:RtaView Grid.Row="1" Frame="{Binding LatestFrame}" Resolution="{Binding RtaResolution}" ChannelMode="{Binding RtaChannelMode}" Settings="{Binding MeasurementSettings}" Margin="14"/></Grid></TabItem>
-            <TabItem Header="LOUDNESS"><Grid x:Name="LoudnessPane" Background="#0B1220"><Grid.RowDefinitions><RowDefinition Height="84"/><RowDefinition Height="*"/></Grid.RowDefinitions><DockPanel Margin="14,8"><StackPanel><TextBlock Text="LOUDNESS · EBU R128" FontWeight="SemiBold"/><TextBlock Text="{Binding CurrentLoudnessText}" FontSize="24" FontWeight="SemiBold" Margin="0,5,0,0"/><TextBlock Text="Momentary · Short-term · Integrated" Foreground="#9CA3AF" FontSize="10"/></StackPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="СБРОС" Click="ResetPane"/><Button Content="PNG" Tag="LoudnessPane" Click="SaveScreenshot"/><Button Content="НАСТРОЙКИ" Tag="Loudness" Click="OpenSettings"/></StackPanel></DockPanel><rendering:LoudnessView x:Name="LoudnessView" Grid.Row="1" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" Margin="14"/></Grid></TabItem>
-            <TabItem Header="PHASE SCOPE"><Grid x:Name="PhasePane" Background="#0B1220"><Grid.RowDefinitions><RowDefinition Height="68"/><RowDefinition Height="*"/></Grid.RowDefinitions><StackPanel Margin="14,8"><DockPanel><TextBlock Text="PHASE SCOPE" FontWeight="SemiBold"/><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="СБРОС" Click="ResetPane"/><Button Content="PNG" Tag="PhasePane" Click="SaveScreenshot"/><Button Content="НАСТРОЙКИ" Tag="Phase" Click="OpenSettings"/></StackPanel></DockPanel><Slider x:Name="PhaseGain" Minimum="0.25" Maximum="4" Value="{Binding PhaseGain, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0"/></StackPanel><rendering:PhaseScopeView Grid.Row="1" Frame="{Binding LatestFrame}" Gain="{Binding PhaseGain}" Settings="{Binding MeasurementSettings}" Margin="14"/></Grid></TabItem>
-        </TabControl>
-        <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#172033" CornerRadius="5" Padding="8" Margin="0,12,0,0"><TextBlock Text="{Binding StatusText}" FontSize="11"/></Border>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="6" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0" LastChildFill="True">
+            <StackPanel DockPanel.Dock="Top">
+                <TextBlock Text="AA" FontSize="22" FontWeight="Bold" />
+                <TextBlock Text="ANALYZER" FontSize="10" Foreground="#9CA3AF" Margin="0,0,0,12" />
+                <TextBlock Text="ИСТОЧНИК" Foreground="#9CA3AF" FontSize="10" />
+                <RadioButton Content="Устройство" GroupName="SourceMode" IsChecked="{Binding IsDeviceMode}" FontSize="10" />
+                <RadioButton Content="Поток" GroupName="SourceMode" IsChecked="{Binding IsStreamMode}" FontSize="10" />
+                <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" DisplayMemberPath="Name" Height="26" FontSize="10" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBox Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}" Height="26" FontSize="10" Visibility="{Binding IsStreamMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Style="{StaticResource ToolButton}" Content="СТАРТ" Command="{Binding StartCommand}" Height="28" Margin="0,8,0,0" />
+                <Button Style="{StaticResource ToolButton}" Content="СТОП" Command="{Binding StopCommand}" Height="24" Margin="0,4,0,8" />
+            </StackPanel>
+            <rendering:MeterRailView x:Name="MeterRail" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" />
+        </DockPanel>
+
+        <Grid Grid.Column="2" Background="#080B10">
+            <Grid.RowDefinitions><RowDefinition Height="26" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <DockPanel Background="#10151C">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource ToolButton}" Content="СБРОС" Click="ResetPane" />
+                    <Button Style="{StaticResource ToolButton}" Content="PNG" Click="SaveScreenshot" />
+                    <Button Style="{StaticResource ToolButton}" Content="НАСТРОЙКИ" Click="OpenSettings" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource ToolRadio}" GroupName="Tabs" Content="Waterfall" IsChecked="{Binding ActiveTab, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Waterfall}" />
+                    <RadioButton Style="{StaticResource ToolRadio}" GroupName="Tabs" Content="Loudness" IsChecked="{Binding ActiveTab, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Loudness}" />
+                    <RadioButton Style="{StaticResource ToolRadio}" GroupName="Tabs" Content="RTA" IsChecked="{Binding ActiveTab, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Rta}" />
+                    <RadioButton Style="{StaticResource ToolRadio}" GroupName="Tabs" Content="Phase" IsChecked="{Binding ActiveTab, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Phase}" />
+                </StackPanel>
+            </DockPanel>
+
+            <Grid Grid.Row="1">
+                <Grid x:Name="WaterfallPane">
+                    <Grid.Style>
+                        <Style TargetType="Grid" BasedOn="{StaticResource PaneBase}">
+                            <Style.Triggers><DataTrigger Binding="{Binding ActiveTab}" Value="Waterfall"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <rendering:WaterfallView x:Name="WaterfallView" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" />
+                </Grid>
+
+                <Grid x:Name="LoudnessPane">
+                    <Grid.Style>
+                        <Style TargetType="Grid" BasedOn="{StaticResource PaneBase}">
+                            <Style.Triggers><DataTrigger Binding="{Binding ActiveTab}" Value="Loudness"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions><RowDefinition Height="28" /><RowDefinition Height="26" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Metric" Content="Momentary" IsChecked="{Binding LoudnessMetric, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Momentary}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Metric" Content="Short-Term" IsChecked="{Binding LoudnessMetric, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=ShortTerm}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Metric" Content="Integrated" IsChecked="{Binding LoudnessMetric, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Integrated}" />
+                        <Button Style="{StaticResource ToolButton}" Content="Rolling" ToolTip="Переключить окно Integrated" Click="CycleRolling" />
+                        <Button Style="{StaticResource ToolButton}" Content="Reset" Foreground="#FF8A80" Click="ResetPane" />
+                    </StackPanel>
+                    <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="22" FontWeight="Bold" Foreground="#4CAF50" Text="{Binding CurrentLoudnessText}" />
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,2,0,0">
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="1m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=60}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="2m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=120}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="3m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=180}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="5m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=300}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="10m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=600}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="20m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=1200}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="30m" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=1800}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="1h" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=3600}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="6h" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=21600}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="Window" Content="12h" IsChecked="{Binding LoudnessWindowSeconds, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=43200}" />
+                        <Button Style="{StaticResource ToolButton}" Content="Y−" Margin="10,0,1,0" Click="LoudnessZoomOut" />
+                        <Button Style="{StaticResource ToolButton}" Content="Y+" Click="LoudnessZoomIn" />
+                        <TextBlock Text="{Binding LoudnessScaleText}" VerticalAlignment="Center" Margin="8,0" FontSize="11" Foreground="#9CA3AF" />
+                        <Button Style="{StaticResource ToolButton}" Content="▼" Click="LoudnessShiftDown" />
+                        <Button Style="{StaticResource ToolButton}" Content="▲" Click="LoudnessShiftUp" />
+                    </StackPanel>
+                    <rendering:LoudnessView x:Name="LoudnessView" Grid.Row="2" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" />
+                </Grid>
+
+                <Grid x:Name="RtaPane">
+                    <Grid.Style>
+                        <Style TargetType="Grid" BasedOn="{StaticResource PaneBase}">
+                            <Style.Triggers><DataTrigger Binding="{Binding ActiveTab}" Value="Rta"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions><RowDefinition Height="28" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaSource" Content="Mono" IsChecked="{Binding IsRtaMono, Mode=TwoWay}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaSource" Content="L" IsChecked="{Binding IsRtaLeft, Mode=TwoWay}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaSource" Content="R" IsChecked="{Binding IsRtaRight, Mode=TwoWay}" Margin="1,0,12,0" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaResolution" Content="1/1" IsChecked="{Binding RtaResolution, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=One}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaResolution" Content="1/3" IsChecked="{Binding RtaResolution, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=OneThird}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaResolution" Content="1/6" IsChecked="{Binding RtaResolution, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=OneSixth}" />
+                        <RadioButton Style="{StaticResource ToolRadio}" GroupName="RtaResolution" Content="1/12" IsChecked="{Binding RtaResolution, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=OneTwelfth}" Margin="1,0,12,0" />
+                        <Button Style="{StaticResource ToolButton}" Content="−" Click="RtaAverageDown" />
+                        <TextBlock Text="{Binding RtaAverageText}" VerticalAlignment="Center" Margin="6,0" FontSize="11" Foreground="#D6DCE5" />
+                        <Button Style="{StaticResource ToolButton}" Content="+" Click="RtaAverageUp" />
+                        <Button Style="{StaticResource ToolButton}" Content="−" Margin="12,0,1,0" Click="RtaTargetDown" />
+                        <TextBlock Text="{Binding RtaTargetText}" VerticalAlignment="Center" Margin="6,0" FontSize="11" Foreground="#D6DCE5" />
+                        <Button Style="{StaticResource ToolButton}" Content="+" Click="RtaTargetUp" />
+                    </StackPanel>
+                    <rendering:RtaView Grid.Row="1" Frame="{Binding LatestFrame}" Resolution="{Binding RtaResolution}" ChannelMode="{Binding RtaChannelMode}" Settings="{Binding MeasurementSettings}" />
+                </Grid>
+
+                <Grid x:Name="PhasePane">
+                    <Grid.Style>
+                        <Style TargetType="Grid" BasedOn="{StaticResource PaneBase}">
+                            <Style.Triggers><DataTrigger Binding="{Binding ActiveTab}" Value="Phase"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions><RowDefinition Height="28" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Slider x:Name="PhaseGain" Minimum="0.25" Maximum="4" Value="{Binding PhaseGain, UpdateSourceTrigger=PropertyChanged}" Margin="6,6,6,0" />
+                    <rendering:PhaseScopeView Grid.Row="1" Frame="{Binding LatestFrame}" Gain="{Binding PhaseGain}" Settings="{Binding MeasurementSettings}" Margin="8" />
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#10151C" CornerRadius="3" Padding="8,4" Margin="0,6,0,0"><TextBlock Text="{Binding StatusText}" FontSize="11" /></Border>
     </Grid>
 </Window>

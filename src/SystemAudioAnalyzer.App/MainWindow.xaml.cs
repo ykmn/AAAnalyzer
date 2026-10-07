@@ -38,21 +38,23 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SetRtaResolution(object sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is FrameworkElement { Tag: string name } && DataContext is MainViewModel viewModel && Enum.TryParse<RtaResolution>(name, out var resolution))
-        {
-            viewModel.RtaResolution = resolution;
-        }
-    }
+    private void CycleRolling(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.CycleRollingWindow();
 
-    private void SetRtaChannel(object sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is FrameworkElement { Tag: string name } && DataContext is MainViewModel viewModel && Enum.TryParse<RtaChannelMode>(name, out var mode))
-        {
-            viewModel.RtaChannelMode = mode;
-        }
-    }
+    private void LoudnessZoomOut(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ZoomLoudness(1.5);
+
+    private void LoudnessZoomIn(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ZoomLoudness(1 / 1.5);
+
+    private void LoudnessShiftDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ShiftLoudness(-1);
+
+    private void LoudnessShiftUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ShiftLoudness(1);
+
+    private void RtaAverageDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaAveraging(-10);
+
+    private void RtaAverageUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaAveraging(10);
+
+    private void RtaTargetDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaTarget(-1);
+
+    private void RtaTargetUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaTarget(1);
 
     private void ResetPane(object sender, RoutedEventArgs eventArgs)
     {
@@ -67,7 +69,13 @@ public partial class MainWindow : Window
 
     private async void SaveScreenshot(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not FrameworkElement { Tag: string paneName } || FindName(paneName) is not FrameworkElement pane)
+        if (DataContext is not MainViewModel activeViewModel)
+        {
+            return;
+        }
+
+        var paneName = $"{activeViewModel.ActiveTab}Pane";
+        if (FindName(paneName) is not FrameworkElement pane)
         {
             return;
         }
@@ -84,15 +92,12 @@ public partial class MainWindow : Window
 
     private async void OpenSettings(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not FrameworkElement { Tag: string name } || !Enum.TryParse<InstrumentTab>(name, out var page))
-        {
-            return;
-        }
-
         if (DataContext is not MainViewModel mainViewModel)
         {
             return;
         }
+
+        var page = mainViewModel.ActiveTab;
 
         try
         {

@@ -20,8 +20,8 @@ public sealed class LoudnessView : FrameworkElement
 
     protected override void OnRender(DrawingContext context)
     {
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(17, 24, 39)), null, new Rect(new Point(), RenderSize));
-        var now = DateTimeOffset.UtcNow;
+        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(8, 11, 16)), null, new Rect(new Point(), RenderSize));
+        var now = DateTimeOffset.Now;
         var points = _history.GetVisiblePoints(now);
         var visibleDuration = TimeSpan.FromSeconds(Math.Clamp(Settings.Loudness.HistorySeconds, 15, 43_200));
         points = points.Where(point => point.Timestamp >= now - visibleDuration).ToArray();
@@ -30,21 +30,37 @@ public sealed class LoudnessView : FrameworkElement
         var range = LoudnessDisplayScale.ResolveRange(Settings.Loudness, finite);
         if (range is null || ActualWidth <= 1 || ActualHeight <= 1) return;
         var (minimum, maximum) = range.Value;
-        var timeStep = Math.Max(10d, Math.Ceiling(visibleDuration.TotalSeconds / 120d) * 10d);
-        for (var second = 0d; second <= visibleDuration.TotalSeconds; second += timeStep)
+        var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)), 0.5);
+        var timeStep = AxisTicks.LoudnessTimeStep(visibleDuration.TotalSeconds);
+        foreach (var tick in AxisTicks.TimeTicks(now, visibleDuration, timeStep))
         {
-            var x = ActualWidth * (visibleDuration.TotalSeconds - second) / visibleDuration.TotalSeconds;
-            context.DrawLine(new Pen(Brushes.DimGray, 0.5), new Point(x, 0), new Point(x, ActualHeight));
-            var labelTime = now.AddSeconds(-second).ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-            DrawLabel(context, labelTime, x + 2, ActualHeight - 14);
+            var x = ActualWidth * (1 - (tick.SecondsAgo / visibleDuration.TotalSeconds));
+            context.DrawLine(gridPen, new Point(x, TopGutter), new Point(x, ActualHeight));
+            DrawLabel(context, tick.Label, x + 2, 2);
         }
-        for (var lufs = minimum; lufs <= maximum; lufs++)
+        var valueStep = AxisTicks.LoudnessYStep(maximum - minimum);
+        for (var lufs = Math.Ceiling(minimum / valueStep) * valueStep; lufs <= maximum; lufs += valueStep)
         {
             var y = Map(lufs, minimum, maximum);
-            context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(0, y), new Point(ActualWidth, y));
-            DrawLabel(context, $"{lufs:0} LUFS", 3, y - 12);
+            context.DrawLine(gridPen, new Point(0, y), new Point(ActualWidth, y));
+            DrawLabel(context, $"{lufs:0} LUFS", 3, y + 1);
         }
         DrawSeries(context, points, selected, minimum, maximum, now, visibleDuration);
+        DrawCaption(context);
+    }
+
+    private void DrawCaption(DrawingContext context)
+    {
+        var caption = Settings.Loudness.Metric switch
+        {
+            LoudnessMetric.Momentary => "Momentary Loudness",
+            LoudnessMetric.ShortTerm => "Short-term Loudness",
+            _ => "Integrated Loudness",
+        };
+        var text = new FormattedText(caption, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface(new System.Windows.Media.FontFamily("Segoe UI"), System.Windows.FontStyles.Normal, System.Windows.FontWeights.Bold, System.Windows.FontStretches.Normal),
+            11, new SolidColorBrush(Color.FromRgb(110, 220, 120)), VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        context.DrawText(text, new Point(ActualWidth - text.Width - 6, ActualHeight - text.Height - 4));
     }
 
     private static void OnFrameChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
@@ -68,7 +84,9 @@ public sealed class LoudnessView : FrameworkElement
         }
     }
 
-    private double Map(double value, double min, double max) => ActualHeight - ((value - min) / (max - min) * ActualHeight);
+    private const double TopGutter = 16;
+
+    private double Map(double value, double min, double max) => ActualHeight - ((value - min) / (max - min) * Math.Max(1, ActualHeight - TopGutter));
 
     private void DrawLabel(DrawingContext context, string text, double x, double y) =>
         context.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
