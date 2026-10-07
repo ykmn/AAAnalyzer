@@ -6,3 +6,4 @@ work/
 .superpowers/
 release/AAAnalyzer-*/
 *.user
+temp/

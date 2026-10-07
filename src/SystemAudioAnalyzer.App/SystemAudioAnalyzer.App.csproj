@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>AAAnalyzer</AssemblyName>
+    <ApplicationIcon>..\SystemAudioAnalyzer.Diagnostic\Assets\AAAnalyzer.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SystemAudioAnalyzer.Core\SystemAudioAnalyzer.Core.csproj" />
