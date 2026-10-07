@@ -5,6 +5,7 @@ public sealed class SpectrumAnalyzer
     private readonly int _fftSize;
     private readonly int _hopSize;
     private readonly float[] _window;
+    private readonly float _windowSum;
     private readonly List<float> _monoSamples = [];
     private readonly List<float> _leftSamples = [];
     private readonly List<float> _rightSamples = [];
@@ -37,6 +38,8 @@ public sealed class SpectrumAnalyzer
                 _ => throw new ArgumentOutOfRangeException(nameof(window)),
             };
         }
+
+        _windowSum = _window.Sum();
     }
 
     public bool TryProcess(ReadOnlySpan<float> interleavedSamples, AudioFormat format, out Spectrum? spectrum)
@@ -75,11 +78,7 @@ public sealed class SpectrumAnalyzer
         }
 
         Transform(real, imaginary);
-        var magnitudes = new float[(_fftSize / 2) + 1];
-        for (var index = 0; index < magnitudes.Length; index++)
-        {
-            magnitudes[index] = MathF.Sqrt((real[index] * real[index]) + (imaginary[index] * imaginary[index]));
-        }
+        var magnitudes = ToMagnitudes(real, imaginary);
 
         _monoSamples.RemoveRange(0, _hopSize);
         spectrum = new Spectrum(format.SampleRate, _fftSize, magnitudes);
@@ -126,13 +125,23 @@ public sealed class SpectrumAnalyzer
         }
 
         Transform(real, imaginary);
-        var magnitudes = new float[(_fftSize / 2) + 1];
-        for (var index = 0; index < magnitudes.Length; index++)
-        {
-            magnitudes[index] = MathF.Sqrt((real[index] * real[index]) + (imaginary[index] * imaginary[index]));
-        }
+        var magnitudes = ToMagnitudes(real, imaginary);
 
         return new Spectrum(format.SampleRate, _fftSize, magnitudes);
+    }
+
+    /// <summary>Amplitude spectrum scaled so a full-scale sine reads 1.0 (0 dBFS); DC and Nyquist are not mirrored, so they use half the scale.</summary>
+    private float[] ToMagnitudes(float[] real, float[] imaginary)
+    {
+        var magnitudes = new float[(_fftSize / 2) + 1];
+        var scale = 2f / _windowSum;
+        for (var index = 0; index < magnitudes.Length; index++)
+        {
+            var edge = index == 0 || index == _fftSize / 2;
+            magnitudes[index] = MathF.Sqrt((real[index] * real[index]) + (imaginary[index] * imaginary[index])) * (edge ? scale / 2f : scale);
+        }
+
+        return magnitudes;
     }
 
     private static void Transform(float[] real, float[] imaginary)

@@ -2,27 +2,44 @@ namespace SystemAudioAnalyzer.Core.Tests;
 
 public sealed class SpectrumAnalyzerTests
 {
-    // A constant signal's DC magnitude is the hand-derived sum of the window.
+    // A bin-centred full-scale sine reads 1.0 (0 dBFS); the neighbouring bin shows the
+    // window's main-lobe leakage, which tells the windows apart: (a1 / 2) / a0.
     [Theory]
-    [InlineData(SpectrumWindow.Rectangular, 64f)]
-    [InlineData(SpectrumWindow.Hann, 31.5f)]
-    [InlineData(SpectrumWindow.Hamming, 34.1f)]
-    [InlineData(SpectrumWindow.Blackman, 26.46f)]
-    public void SelectedWindowAppliesToMonoAndBothStereoChannels(SpectrumWindow window, float expectedDc)
+    [InlineData(SpectrumWindow.Rectangular, 0f)]
+    [InlineData(SpectrumWindow.Hann, 0.5f)]
+    [InlineData(SpectrumWindow.Hamming, 0.426f)]
+    [InlineData(SpectrumWindow.Blackman, 0.595f)]
+    public void SelectedWindowAppliesToMonoAndBothStereoChannels(SpectrumWindow window, float expectedNeighbour)
     {
-        var analyzer = new SpectrumAnalyzer(64, window);
-        var samples = Enumerable.Repeat(1f, 128).ToArray();
+        const int fftSize = 256;
+        const int bin = 32;
+        var analyzer = new SpectrumAnalyzer(fftSize, window);
+        var samples = new float[fftSize * 2];
+        for (var index = 0; index < fftSize; index++)
+        {
+            var value = MathF.Sin(2 * MathF.PI * bin * index / fftSize);
+            samples[index * 2] = value;
+            samples[(index * 2) + 1] = value;
+        }
 
         Assert.True(analyzer.TryProcessStereo(samples, new AudioFormat(48_000, 2), out var spectrum));
         Assert.NotNull(spectrum);
         foreach (var channel in new[] { spectrum.Mono, spectrum.Left, spectrum.Right })
         {
-            Assert.InRange(channel.Magnitudes[0], expectedDc - 0.001f, expectedDc + 0.001f);
+            Assert.InRange(channel.Magnitudes[bin], 0.97f, 1.03f);
+            Assert.InRange(channel.Magnitudes[bin + 1], expectedNeighbour - 0.06f, expectedNeighbour + 0.06f);
         }
+    }
 
-        var mono = new SpectrumAnalyzer(64, window);
-        Assert.True(mono.TryProcess(samples.AsSpan(0, 64), new AudioFormat(48_000, 1), out var monoSpectrum));
-        Assert.InRange(monoSpectrum!.Magnitudes[0], expectedDc - 0.001f, expectedDc + 0.001f);
+    [Fact]
+    public void ConstantSignalReadsItsAmplitudeAtDcForEveryWindow()
+    {
+        foreach (var window in Enum.GetValues<SpectrumWindow>())
+        {
+            var analyzer = new SpectrumAnalyzer(64, window);
+            Assert.True(analyzer.TryProcess(Enumerable.Repeat(0.5f, 64).ToArray(), new AudioFormat(48_000, 1), out var spectrum));
+            Assert.InRange(spectrum!.Magnitudes[0], 0.499f, 0.501f);
+        }
     }
 
     [Fact]
@@ -30,7 +47,7 @@ public sealed class SpectrumAnalyzerTests
     {
         var analyzer = new SpectrumAnalyzer(64);
         Assert.True(analyzer.TryProcess(Enumerable.Repeat(1f, 64).ToArray(), new AudioFormat(48_000, 1), out var spectrum));
-        Assert.InRange(spectrum!.Magnitudes[0], 31.499f, 31.501f);
+        Assert.InRange(spectrum!.Magnitudes[0], 0.999f, 1.001f);
     }
 
     [Theory]

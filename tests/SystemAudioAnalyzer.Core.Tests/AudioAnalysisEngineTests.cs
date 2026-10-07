@@ -39,7 +39,7 @@ public sealed class AudioAnalysisEngineTests
         await Task.Delay(40, cancellation.Token);
         capture.Publish(Enumerable.Repeat(1f, 1024).ToArray(), format);
         Assert.True(await frames.MoveNextAsync());
-        Assert.InRange(frames.Current.Spectrum!.Magnitudes[0], 276.018f, 276.022f);
+        Assert.InRange(frames.Current.Spectrum!.Magnitudes[0], 0.999f, 1.001f);
 
         engine.SetAnalysisConfiguration(new AnalysisConfiguration(2048, SpectrumWindow.Blackman));
         await Task.Delay(40, cancellation.Token);
@@ -65,7 +65,7 @@ public sealed class AudioAnalysisEngineTests
         Assert.True(await frames.MoveNextAsync());
         Assert.NotNull(frames.Current.Spectrum);
         Assert.Equal(512, frames.Current.Spectrum!.FftSize);
-        Assert.Equal(512f, frames.Current.Spectrum.Magnitudes[0]);
+        Assert.InRange(frames.Current.Spectrum.Magnitudes[0], 0.999f, 1.001f);
     }
 
     [Fact]

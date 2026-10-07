@@ -28,7 +28,7 @@ public sealed class AnalyzerControllerTests
         source.PublishSamples(Enumerable.Repeat(1f, 512).ToArray(), new AudioFormat(48_000, 1));
         var frame = await updatedFrame.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-        Assert.Equal(512f, frame.Spectrum!.Magnitudes[0]);
+        Assert.InRange(frame.Spectrum!.Magnitudes[0], 0.999f, 1.001f);
         Assert.Equal(AudioSourceState.Running, source.State);
         Assert.Equal(1, source.StartCount);
         Assert.Equal(0, source.StopCount);
