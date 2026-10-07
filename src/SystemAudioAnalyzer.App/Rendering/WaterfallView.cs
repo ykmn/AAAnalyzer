@@ -1,9 +1,12 @@
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Rendering;
 
+/// <summary>Stereo waterfall: left channel above right, time flowing top to bottom, one bitmap per channel.</summary>
 public sealed class WaterfallView : FrameworkElement
 {
     public static readonly DependencyProperty SettingsProperty = DependencyProperty.Register(nameof(Settings), typeof(MeasurementSettings), typeof(WaterfallView), new FrameworkPropertyMetadata(MeasurementSettings.Default, FrameworkPropertyMetadataOptions.AffectsRender, OnSettingsChanged));
@@ -11,16 +14,20 @@ public sealed class WaterfallView : FrameworkElement
         nameof(Frame), typeof(AnalysisFrame), typeof(WaterfallView),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
 
-    private readonly WaterfallHistory _history = new(TimeSpan.FromSeconds(10));
+    private const uint Background = 0xFF000000;
+    private static readonly TimeSpan Window = TimeSpan.FromSeconds(10);
+
+    private WaterfallBitmapBuffer? _left;
+    private WaterfallBitmapBuffer? _right;
+    private WriteableBitmap? _leftBitmap;
+    private WriteableBitmap? _rightBitmap;
+    private WaterfallPixelSettings _pixels = WaterfallPixelSettings.From(MeasurementSettings.Default);
     private double _cursor = 0.5;
-    private SolidColorBrush[] _palette = WaterfallRenderer.CreatePalette(
-        MeasurementSettings.Default.Waterfall.DisplayFloorDb,
-        MeasurementSettings.Default.Waterfall.DisplayOffsetDb,
-        MeasurementSettings.Default.Waterfall.GradientStops);
 
     public WaterfallView()
     {
         MouseMove += OnMouseMove;
+        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
     }
 
     public AnalysisFrame? Frame
@@ -33,124 +40,98 @@ public sealed class WaterfallView : FrameworkElement
 
     public void Reset()
     {
-        _history.Clear();
+        _left?.Clear();
+        _right?.Clear();
         InvalidateVisual();
     }
 
     protected override void OnRender(DrawingContext context)
     {
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), null, new Rect(new Point(), RenderSize));
+        context.DrawRectangle(Brushes.Black, null, new Rect(new Point(), RenderSize));
         if (ActualWidth <= 1 || ActualHeight <= 1) return;
-        var layout = WaterfallLayout.Calculate(ActualWidth, Math.Max(1, ActualHeight - 30));
-        var rows = _history.GetVisibleRows(DateTimeOffset.UtcNow);
-        var now = DateTimeOffset.UtcNow;
-        DrawRows(context, rows, layout.LeftBounds, true, now);
-        DrawRows(context, rows, layout.RightBounds, false, now);
-        var stereo = Frame?.AdvancedMeasurements?.StereoSpectrum;
-        DrawSpectrumOverlay(context, stereo?.Left ?? Frame?.Spectrum, layout.LeftBounds);
-        DrawSpectrumOverlay(context, stereo?.Right ?? Frame?.Spectrum, layout.RightBounds);
-        context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(layout.RightBounds.Left, layout.LeftBounds.Top), new Point(layout.RightBounds.Left, layout.LeftBounds.Bottom));
-        DrawCursor(context, layout.LeftBounds);
-        DrawCursor(context, layout.RightBounds);
-        DrawText(context, FrequencyScale.Format(FrequencyScale.ToHertz(_cursor, Settings.Analyzer.FrequencyScale)), 6, 4, 12, Brushes.White);
-        foreach (var hertz in new[] { 20d, 100d, 1_000d, 10_000d, 20_000d })
-        {
-            var x = FrequencyScale.ToNormalized(hertz, Settings.Analyzer.FrequencyScale) * layout.LeftBounds.Width;
-            context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(x, layout.LeftBounds.Bottom), new Point(x, layout.LeftBounds.Bottom + 4));
-            var label = FrequencyScale.Format(hertz);
-            var labelWidth = label.Length * 5.4;
-            var labelX = hertz >= 10_000 ? x - labelWidth - 2 : x + 2;
-            DrawText(context, label, labelX, layout.LeftBounds.Bottom + 5, 9, Brushes.LightGray);
-        }
+        var layout = WaterfallLayout.Calculate(ActualWidth, ActualHeight);
+        EnsureBuffers(layout);
+        if (_left is null || _right is null || _leftBitmap is null || _rightBitmap is null) return;
+        Upload(_leftBitmap, _left);
+        Upload(_rightBitmap, _right);
+        context.DrawImage(_leftBitmap, layout.LeftBounds);
+        context.DrawImage(_rightBitmap, layout.RightBounds);
+        DrawCursor(context, layout);
+        DrawAxis(context, layout);
     }
 
     private static void OnFrameChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
-        if (args.NewValue is AnalysisFrame frame) ((WaterfallView)target)._history.Append(frame);
+        if (args.NewValue is AnalysisFrame frame) ((WaterfallView)target).AppendFrame(frame);
     }
 
     private static void OnSettingsChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         var view = (WaterfallView)target;
-        var waterfall = view.Settings.Waterfall;
-        var floor = SpectrumDisplayScale.EffectiveFloor(view.Settings.Analyzer.DisplayFloorDb, waterfall.DisplayFloorDb);
-        view._palette = WaterfallRenderer.CreatePalette(floor, waterfall.DisplayOffsetDb, waterfall.GradientStops);
+        view._pixels = WaterfallPixelSettings.From(view.Settings);
     }
+
+    private void AppendFrame(AnalysisFrame frame)
+    {
+        var stereo = frame.AdvancedMeasurements?.StereoSpectrum;
+        if (stereo is null || _left is null || _right is null) return;
+        var sampleRate = frame.Format.SampleRate;
+        _left.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Left.Magnitudes, sampleRate, stereo.Left.FftSize, _left.Width, _pixels));
+        _right.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Right.Magnitudes, sampleRate, stereo.Right.FftSize, _right.Width, _pixels));
+    }
+
+    private void EnsureBuffers(WaterfallLayout layout)
+    {
+        var width = Math.Max(1, (int)Math.Round(layout.LeftBounds.Width));
+        var height = Math.Max(1, (int)Math.Round(layout.LeftBounds.Height));
+        if (_left is not null && _left.Width == width && _left.Height == height) return;
+        _left = new WaterfallBitmapBuffer(width, height, Window, Background);
+        _right = new WaterfallBitmapBuffer(width, height, Window, Background);
+        _leftBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+        _rightBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+    }
+
+    private static void Upload(WriteableBitmap bitmap, WaterfallBitmapBuffer buffer) =>
+        bitmap.WritePixels(new Int32Rect(0, 0, buffer.Width, buffer.Height), buffer.Pixels, buffer.Width * 4, 0);
 
     private void OnMouseMove(object sender, MouseEventArgs args)
     {
-        if (ActualWidth <= 1) return;
-        var layout = WaterfallLayout.Calculate(ActualWidth, Math.Max(1, ActualHeight));
-        _cursor = layout.GetNormalizedX(args.GetPosition(this).X);
+        if (ActualWidth <= 1 || ActualHeight <= 1) return;
+        _cursor = WaterfallLayout.Calculate(ActualWidth, ActualHeight).GetNormalizedX(args.GetPosition(this).X);
         InvalidateVisual();
     }
 
-    private void DrawRows(DrawingContext context, IReadOnlyList<WaterfallRow> rows, Rect bounds, bool left, DateTimeOffset now)
+    private void DrawCursor(DrawingContext context, WaterfallLayout layout)
     {
-        if (rows.Count == 0) return;
-        var displayFloor = SpectrumDisplayScale.EffectiveFloor(Settings.Analyzer.DisplayFloorDb, Settings.Waterfall.DisplayFloorDb);
-        for (var row = 0; row < rows.Count; row++)
+        var x = layout.LeftBounds.Left + (layout.LeftBounds.Width * _cursor);
+        context.DrawLine(new Pen(ColorBrush(Settings.Analyzer.CursorColor), 1), new Point(x, layout.LeftBounds.Top), new Point(x, layout.RightBounds.Bottom));
+        var hertz = Math.Clamp(FrequencyScale.ToHertz(_cursor, Settings.Analyzer.FrequencyScale), FrequencyScale.MinimumHertz, FrequencyScale.MaximumHertz);
+        var text = Format(FrequencyScale.Format(hertz), 11, Brushes.White);
+        var plaque = new Rect(Math.Clamp(x - text.Width - 8, 0, Math.Max(0, ActualWidth - text.Width - 8)), 3, text.Width + 8, text.Height + 2);
+        context.DrawRectangle(Brushes.Black, null, plaque);
+        context.DrawText(text, new Point(plaque.Left + 4, plaque.Top + 1));
+    }
+
+    private void DrawAxis(DrawingContext context, WaterfallLayout layout)
+    {
+        var axis = layout.AxisBounds;
+        var textBrush = ColorBrush(Settings.Analyzer.TextColor);
+        var lastRight = double.NegativeInfinity;
+        foreach (var label in AxisTicks.WaterfallFrequencyLabels())
         {
-            var ageSeconds = Math.Clamp((now - rows[row].Timestamp).TotalSeconds, 0, 10);
-            var y = bounds.Bottom - (ageSeconds / 10d * bounds.Height);
-            var rowHeight = Math.Max(1, bounds.Height / 300d);
-            var values = left ? rows[row].Left : rows[row].Right;
-            for (var x = 0; x < 96; x++)
-            {
-                var lowerHertz = FrequencyScale.ToHertz((double)x / 96, Settings.Analyzer.FrequencyScale);
-                var upperHertz = FrequencyScale.ToHertz((double)(x + 1) / 96, Settings.Analyzer.FrequencyScale);
-                var firstBin = Math.Max(0, (int)Math.Floor(lowerHertz * rows[row].FftSize / rows[row].SampleRate));
-                var lastBin = Math.Min(values.Count - 1, (int)Math.Ceiling(upperHertz * rows[row].FftSize / rows[row].SampleRate));
-                var magnitude = 0f;
-                for (var bin = firstBin; bin <= lastBin; bin++) magnitude = Math.Max(magnitude, values[bin]);
-                var db = values.Count == 0 ? displayFloor : 20 * Math.Log10(Math.Max(magnitude * Settings.Analyzer.Gain, 0.000001f));
-                var paletteIndex = WaterfallRenderer.GetPaletteIndex(db, displayFloor, Settings.Waterfall.DisplayOffsetDb, Settings.Waterfall.GradientStops, _palette.Length);
-                context.DrawRectangle(_palette[paletteIndex], null, new Rect(bounds.Left + x * bounds.Width / 96, y - rowHeight, bounds.Width / 96 + 1, rowHeight + 0.2));
-            }
+            var x = FrequencyScale.ToNormalized(label.Hertz, Settings.Analyzer.FrequencyScale) * axis.Width;
+            context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(x, axis.Top), new Point(x, axis.Top + 4));
+            var text = Format(label.Label, 10, textBrush);
+            var left = Math.Clamp(x - (text.Width / 2), 1, Math.Max(1, axis.Width - text.Width - 1));
+            if (left < lastRight + 6) continue;
+            context.DrawText(text, new Point(left, axis.Top + 4));
+            lastRight = left + text.Width;
         }
     }
 
-    private void DrawCursor(DrawingContext context, Rect bounds)
-    {
-        var x = bounds.Left + bounds.Width * _cursor;
-        context.DrawLine(new Pen(ColorBrush(Settings.Analyzer.CursorColor), 1), new Point(x, bounds.Top), new Point(x, bounds.Bottom));
-    }
-
-    private void DrawSpectrumOverlay(DrawingContext context, Spectrum? spectrum, Rect bounds)
-    {
-        if (spectrum is null || spectrum.Magnitudes.Count < 2) return;
-        var geometry = new StreamGeometry();
-        using (var drawing = geometry.Open())
-        {
-            var started = false;
-            for (var bin = 1; bin < spectrum.Magnitudes.Count; bin++)
-            {
-                var hertz = spectrum.GetFrequencyHz(bin);
-                if (hertz < FrequencyScale.MinimumHertz) continue;
-                if (hertz > FrequencyScale.MaximumHertz) break;
-                var normalizedX = FrequencyScale.ToNormalized(hertz, Settings.Analyzer.FrequencyScale);
-                var normalizedY = SpectrumDisplayScale.ToNormalizedAmplitude(spectrum.Magnitudes[bin], Settings.Analyzer.Gain,
-                    Settings.Analyzer.AmplitudeScale, Settings.Analyzer.DisplayFloorDb);
-                var point = new Point(bounds.Left + normalizedX * bounds.Width, bounds.Bottom - normalizedY * bounds.Height);
-                if (!started)
-                {
-                    drawing.BeginFigure(point, false, false);
-                    started = true;
-                }
-                else
-                {
-                    drawing.LineTo(point, true, false);
-                }
-            }
-        }
-
-        geometry.Freeze();
-        context.DrawGeometry(null, new Pen(ColorBrush(Settings.Analyzer.CursorColor), 1), geometry);
-    }
-
-    private void DrawText(DrawingContext context, string text, double x, double y, double size, Brush brush) =>
-        context.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI"), size, ColorBrush(Settings.Analyzer.TextColor), VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(x, y));
+    private FormattedText Format(string text, double size, Brush brush) =>
+        new(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"), size, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
     private static Brush ColorBrush(string color) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
 }

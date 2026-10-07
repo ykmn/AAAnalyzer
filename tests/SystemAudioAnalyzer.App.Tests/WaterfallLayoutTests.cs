@@ -9,16 +9,18 @@ public sealed class WaterfallLayoutTests
     [Theory]
     [InlineData(1000, 400)]
     [InlineData(420, 300)]
-    public void WaterfallLayoutCreatesEqualWidthStereoRegions(double width, double height)
+    public void WaterfallLayoutStacksLeftAboveRightWithAxisBelow(double width, double height)
     {
         var layout = WaterfallLayout.Calculate(width, height);
 
-        Assert.Equal(width / 2, layout.LeftBounds.Width);
-        Assert.Equal(layout.LeftBounds.Width, layout.RightBounds.Width);
+        Assert.Equal(width, layout.LeftBounds.Width);
+        Assert.Equal(width, layout.RightBounds.Width);
         Assert.Equal(0, layout.LeftBounds.X);
-        Assert.Equal(layout.LeftBounds.Right, layout.RightBounds.X);
-        Assert.Equal(width, layout.RightBounds.Right);
-        Assert.Equal(height, layout.LeftBounds.Height);
+        Assert.Equal(0, layout.RightBounds.X);
+        Assert.Equal(layout.LeftBounds.Height, layout.RightBounds.Height);
+        Assert.True(layout.LeftBounds.Bottom < layout.RightBounds.Top);
+        Assert.Equal(layout.RightBounds.Bottom, layout.AxisBounds.Top, 6);
+        Assert.Equal(height, layout.AxisBounds.Bottom, 6);
     }
 
     [Fact]
@@ -29,14 +31,15 @@ public sealed class WaterfallLayoutTests
     }
 
     [Theory]
-    [InlineData(0.2, 0.2)]
-    [InlineData(0.8, 0.8)]
-    public void CursorRelativePositionIsEqualWhenEnteredOverEitherStereoPane(double normalized, double expected)
+    [InlineData(0.2)]
+    [InlineData(0.8)]
+    public void CursorPositionIsTheSameOnBothChannels(double normalized)
     {
         var layout = WaterfallLayout.Calculate(1000, 400);
 
-        Assert.Equal(expected, layout.GetNormalizedX(layout.LeftBounds.X + (layout.LeftBounds.Width * normalized)));
-        Assert.Equal(expected, layout.GetNormalizedX(layout.RightBounds.X + (layout.RightBounds.Width * normalized)));
+        Assert.Equal(normalized, layout.GetNormalizedX(layout.LeftBounds.Width * normalized), 6);
+        Assert.Equal(0, layout.GetNormalizedX(-50));
+        Assert.Equal(1, layout.GetNormalizedX(5000));
     }
 
     [Fact]

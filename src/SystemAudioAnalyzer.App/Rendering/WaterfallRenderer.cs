@@ -33,6 +33,12 @@ public sealed class WaterfallRenderer
         return palette;
     }
 
+    public static uint[] CreateArgbPalette(double displayFloorDb, double displayOffsetDb, IReadOnlyList<ColorStop> gradientStops, int colorCount = 256)
+    {
+        var brushes = CreatePalette(displayFloorDb, displayOffsetDb, gradientStops, colorCount);
+        return brushes.Select(brush => (uint)((brush.Color.A << 24) | (brush.Color.R << 16) | (brush.Color.G << 8) | brush.Color.B)).ToArray();
+    }
+
     public static int GetPaletteIndex(double levelDb, double displayFloorDb, double displayOffsetDb, IReadOnlyList<ColorStop> gradientStops, int colorCount)
     {
         if (colorCount < 2) throw new ArgumentOutOfRangeException(nameof(colorCount));
