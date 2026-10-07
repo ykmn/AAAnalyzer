@@ -37,6 +37,7 @@ public sealed class WaterfallView : FrameworkElement
         var rows = _history.GetVisibleRows(DateTimeOffset.UtcNow);
         DrawRows(context, rows, layout.LeftBounds, true);
         DrawRows(context, rows, layout.RightBounds, false);
+        context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(layout.RightBounds.Left, layout.LeftBounds.Top), new Point(layout.RightBounds.Left, layout.LeftBounds.Bottom));
         DrawCursor(context, layout.LeftBounds);
         DrawCursor(context, layout.RightBounds);
         DrawText(context, FrequencyScale.Format(FrequencyScale.ToHertz(_cursor)), 6, 4, 12, Brushes.White);

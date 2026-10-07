@@ -19,6 +19,7 @@ if ($release -notmatch '^(?<version>\d+\.\d{3})\s-\s(?<date>\d{4}\.\d{2}\.\d{2})
 }
 
 $version = $Matches.version
+Write-Host "Building version: $version" -ForegroundColor Green
 $outputDirectory = Join-Path $PSScriptRoot "AAAnalyzer-$version"
 
 if (Test-Path -LiteralPath $outputDirectory) {

@@ -25,10 +25,11 @@ public sealed class MeterRailView : FrameworkElement
             var overload = measurement?.Overload.ElementAtOrDefault(channel) == true;
             var current = measurement?.Current.ElementAtOrDefault(channel) ?? 0f;
             var maximum = measurement?.Maximum.ElementAtOrDefault(channel) ?? 0f;
-            context.DrawRectangle(overload ? Brushes.Red : Brushes.DarkRed, null, new Rect(x, 4, width, 10));
-            DrawText(context, $"{ToDb(maximum):0.0}", x, 18, 10, Brushes.White);
-            DrawText(context, channel == 0 ? "L" : "R", x, 32, 10, Brushes.LightGray);
-            var meter = new Rect(x, 46, width, Math.Max(1, ActualHeight - 52));
+            DrawText(context, $"MAX {ToDb(maximum):0.0}", x, 4, 9, Brushes.LightGray);
+            DrawText(context, $"{ToDb(current):0.0} dBTP", x, 18, 9, Brushes.White);
+            context.DrawRectangle(overload ? Brushes.Red : Brushes.DarkRed, null, new Rect(x, 32, width, 9));
+            DrawText(context, channel == 0 ? "L" : "R", x, 43, 9, Brushes.LightGray);
+            var meter = new Rect(x, 56, width, Math.Max(1, ActualHeight - 62));
             context.DrawRectangle(Brushes.Black, new Pen(Brushes.DimGray, 1), meter);
             var fill = Math.Clamp((ToDb(current) + 60) / 60, 0, 1) * meter.Height;
             context.DrawRectangle(Brushes.LimeGreen, null, new Rect(meter.Left + 2, meter.Bottom - fill, meter.Width - 4, fill));
