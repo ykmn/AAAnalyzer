@@ -19,6 +19,13 @@ public sealed class RtaView : FrameworkElement
         var stereo = Frame?.AdvancedMeasurements?.StereoSpectrum;
         var spectrum = ChannelMode switch { RtaChannelMode.Left => stereo?.Left, RtaChannelMode.Right => stereo?.Right, _ => stereo?.Mono ?? Frame?.Spectrum };
         if (spectrum is null || ActualWidth <= 1 || ActualHeight <= 1) return;
+        for (var step = 0; step <= 8; step++)
+        {
+            var y = step * ActualHeight / 8d;
+            context.DrawLine(new Pen(Brushes.DimGray, 0.5), new Point(0, y), new Point(ActualWidth, y));
+        }
+        var targetY = ActualHeight * 0.45;
+        context.DrawLine(new Pen(Brushes.IndianRed, 1), new Point(0, targetY), new Point(ActualWidth, targetY));
         var bands = RtaBandAggregator.Aggregate(spectrum, Resolution);
         var width = ActualWidth / bands.Count;
         for (var index = 0; index < bands.Count; index++)

@@ -23,10 +23,16 @@ public sealed class LoudnessView : FrameworkElement
         if (finite.Length == 0 || ActualWidth <= 1 || ActualHeight <= 1) return;
         var minimum = Math.Floor(finite.Min()) - 1;
         var maximum = Math.Ceiling(finite.Max()) + 1;
+        for (var second = 0; second <= 60; second += 10)
+        {
+            var x = ActualWidth * second / 60d;
+            context.DrawLine(new Pen(Brushes.DimGray, 0.5), new Point(x, 0), new Point(x, ActualHeight));
+        }
         for (var lufs = minimum; lufs <= maximum; lufs++)
         {
             var y = Map(lufs, minimum, maximum);
             context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(0, y), new Point(ActualWidth, y));
+            DrawLabel(context, $"{lufs:0} LUFS", 3, y - 12);
         }
         DrawSeries(context, points, point => point.MomentaryLufs, Brushes.Gold, minimum, maximum);
         DrawSeries(context, points, point => point.ShortTermLufs, Brushes.DeepSkyBlue, minimum, maximum);
@@ -53,4 +59,8 @@ public sealed class LoudnessView : FrameworkElement
     }
 
     private double Map(double value, double min, double max) => ActualHeight - ((value - min) / (max - min) * ActualHeight);
+
+    private void DrawLabel(DrawingContext context, string text, double x, double y) =>
+        context.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"), 9, Brushes.LightGray, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(x, y));
 }
