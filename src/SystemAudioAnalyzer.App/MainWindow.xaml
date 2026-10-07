@@ -130,6 +130,11 @@
             </Grid>
         </Grid>
 
-        <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#10151C" CornerRadius="3" Padding="8,4" Margin="0,6,0,0"><TextBlock Text="{Binding StatusText}" FontSize="11" /></Border>
+        <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#10151C" CornerRadius="3" Padding="8,4" Margin="0,6,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding DiagnosticsText}" FontSize="11" Foreground="#7F8B99" Margin="12,0,0,0" />
+                <TextBlock Text="{Binding StatusText}" FontSize="11" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

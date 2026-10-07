@@ -22,6 +22,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private MeasurementSettings _measurementSettings = MeasurementSettings.Default;
     private double _phaseGain = MeasurementSettings.Default.Phase.Gain;
     private bool _syncingFromSettings;
+    private readonly FrameStatistics _frameStatistics = new();
+    private DateTimeOffset _lastDiagnosticsUpdate = DateTimeOffset.MinValue;
+    private string _diagnosticsText = string.Empty;
 
     public MainViewModel(IAnalyzerController controller, IEnumerable<OutputDeviceInfo> devices)
     {
@@ -127,6 +130,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string ValidationMessage => SelectedSourceMode == SourceMode.Stream && !TryGetStreamUri(out _)
         ? "Введите корректный HTTP/HTTPS адрес Icecast или HLS-потока."
         : string.Empty;
+
+    /// <summary>Live frame rate, delivery delay, UI cost and dropped buffers; empty while stopped.</summary>
+    public string DiagnosticsText
+    {
+        get => _diagnosticsText;
+        private set => SetField(ref _diagnosticsText, value);
+    }
 
     public string StatusText
     {
@@ -294,6 +304,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             StatusText = "Запуск анализа…";
+            _frameStatistics.Reset();
+            _lastDiagnosticsUpdate = DateTimeOffset.MinValue;
             await _controller.StartAsync(selection);
             IsAnalyzing = true;
             StatusText = "Анализ выполняется.";
@@ -311,6 +323,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             await _controller.StopAsync();
             StatusText = "Анализ остановлен.";
+            DiagnosticsText = string.Empty;
         }
         catch (Exception exception)
         {
@@ -323,7 +336,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     private void OnFrameAvailable(object? sender, AnalysisFrame frame) =>
-        RunOnUi(() => LatestFrame = frame);
+        RunOnUi(() =>
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            LatestFrame = frame;
+            var uiWork = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+            var now = DateTimeOffset.UtcNow;
+            _frameStatistics.Record(frame.Timestamp, now, frame.DroppedBufferCount, uiWork);
+            if (IsAnalyzing && now - _lastDiagnosticsUpdate >= TimeSpan.FromMilliseconds(250))
+            {
+                _lastDiagnosticsUpdate = now;
+                DiagnosticsText = _frameStatistics.Text;
+            }
+        });
 
     private void OnSourceStateChanged(object? sender, AudioSourceStateChangedEventArgs eventArgs) =>
         RunOnUi(() => StatusText = eventArgs.State switch
