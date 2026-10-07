@@ -64,25 +64,8 @@ public sealed class SpectrumAnalyzer
             _monoSamples.Add(mixed / format.Channels);
         }
 
-        if (_monoSamples.Count < _fftSize)
-        {
-            spectrum = null;
-            return false;
-        }
-
-        var real = new float[_fftSize];
-        var imaginary = new float[_fftSize];
-        for (var index = 0; index < _fftSize; index++)
-        {
-            real[index] = _monoSamples[index] * _window[index];
-        }
-
-        Transform(real, imaginary);
-        var magnitudes = ToMagnitudes(real, imaginary);
-
-        _monoSamples.RemoveRange(0, _hopSize);
-        spectrum = new Spectrum(format.SampleRate, _fftSize, magnitudes);
-        return true;
+        spectrum = DrainLatest(_monoSamples, format);
+        return spectrum is not null;
     }
 
     public bool TryProcessStereo(ReadOnlySpan<float> interleavedSamples, AudioFormat format, out StereoSpectrum? spectrum)
@@ -93,6 +76,12 @@ public sealed class SpectrumAnalyzer
             return false;
         }
 
+        if (_format is not null && _format != format)
+        {
+            _leftSamples.Clear();
+            _rightSamples.Clear();
+        }
+
         var hasMonoSpectrum = TryProcess(interleavedSamples, format, out var mono);
         var frameCount = interleavedSamples.Length / format.Channels;
         for (var frame = 0; frame < frameCount; frame++)
@@ -101,18 +90,32 @@ public sealed class SpectrumAnalyzer
             _rightSamples.Add(interleavedSamples[(frame * format.Channels) + 1]);
         }
 
-        if (!hasMonoSpectrum || mono is null || _leftSamples.Count < _fftSize || _rightSamples.Count < _fftSize)
+        var left = DrainLatest(_leftSamples, format);
+        var right = DrainLatest(_rightSamples, format);
+        if (!hasMonoSpectrum || mono is null || left is null || right is null)
         {
             spectrum = null;
             return false;
         }
 
-        var left = BuildSpectrum(_leftSamples, format);
-        var right = BuildSpectrum(_rightSamples, format);
-        _leftSamples.RemoveRange(0, _hopSize);
-        _rightSamples.RemoveRange(0, _hopSize);
         spectrum = new StereoSpectrum(mono, left, right);
         return true;
+    }
+
+    /// <summary>
+    /// Consumes every complete window (advancing by the hop size) and returns the newest spectrum, so a buffer larger
+    /// than the hop can never build up a backlog that would make the display lag behind the audio.
+    /// </summary>
+    private Spectrum? DrainLatest(List<float> samples, AudioFormat format)
+    {
+        Spectrum? latest = null;
+        while (samples.Count >= _fftSize)
+        {
+            latest = BuildSpectrum(samples, format);
+            samples.RemoveRange(0, _hopSize);
+        }
+
+        return latest;
     }
 
     private Spectrum BuildSpectrum(IReadOnlyList<float> samples, AudioFormat format)

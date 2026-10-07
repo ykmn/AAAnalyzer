@@ -136,4 +136,40 @@ public sealed class SpectrumAnalyzerTests
         Assert.False(hasSpectrum);
         Assert.Null(spectrum);
     }
+
+    [Fact]
+    public void LargeBuffersAreDrainedSoTheLatestWindowIsReturned()
+    {
+        const int fftSize = 64;
+        const int bin = 8;
+        var analyzer = new SpectrumAnalyzer(fftSize, SpectrumWindow.Rectangular);
+        var samples = new float[4_096];
+        for (var index = 3_000; index < samples.Length; index++)
+        {
+            samples[index] = MathF.Sin(2 * MathF.PI * bin * index / fftSize);
+        }
+
+        Assert.True(analyzer.TryProcess(samples, new AudioFormat(48_000, 1), out var spectrum));
+
+        Assert.InRange(spectrum!.Magnitudes[bin], 0.97f, 1.03f);
+    }
+
+    [Fact]
+    public void StereoProcessingAlsoReturnsTheLatestWindowOfALargeBuffer()
+    {
+        const int fftSize = 64;
+        const int bin = 8;
+        var analyzer = new SpectrumAnalyzer(fftSize, SpectrumWindow.Rectangular);
+        var samples = new float[4_096 * 2];
+        for (var index = 3_000; index < 4_096; index++)
+        {
+            samples[index * 2] = MathF.Sin(2 * MathF.PI * bin * index / fftSize);
+        }
+
+        Assert.True(analyzer.TryProcessStereo(samples, new AudioFormat(48_000, 2), out var spectrum));
+
+        Assert.InRange(spectrum!.Left.Magnitudes[bin], 0.97f, 1.03f);
+        Assert.InRange(spectrum.Right.Magnitudes.Max(), 0f, 0.0001f);
+        Assert.InRange(spectrum.Mono.Magnitudes[bin], 0.47f, 0.53f);
+    }
 }

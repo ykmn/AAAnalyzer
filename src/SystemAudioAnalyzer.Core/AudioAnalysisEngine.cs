@@ -306,6 +306,13 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     {
         AnalysisConfiguration? activeConfiguration = null;
         SpectrumAnalyzer? spectrumAnalyzer = null;
+
+        // Every buffer feeds the meters and the FFT; only the publishing of frames is throttled. What happened
+        // between two published frames (peaks, newest spectrum) is carried over so nothing is lost.
+        float[] pendingPeaks = [];
+        IReadOnlyList<ChannelLevel>? pendingLevels = null;
+        Spectrum? pendingSpectrum = null;
+        StereoSpectrum? pendingStereo = null;
         await foreach (var buffer in samples.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
             var requestedConfiguration = Volatile.Read(ref _requestedConfiguration);
@@ -313,36 +320,46 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             {
                 spectrumAnalyzer = new SpectrumAnalyzer(requestedConfiguration.FftSize, requestedConfiguration.Window);
                 activeConfiguration = requestedConfiguration;
+                pendingSpectrum = null;
+                pendingStereo = null;
             }
 
             var timestamp = DateTimeOffset.UtcNow;
+            var levels = _levelMeter.Process(buffer.Samples, buffer.Format.Channels);
+            pendingLevels = MergeLevels(pendingLevels, levels);
+            if (buffer.Format.Channels >= 2)
+            {
+                if (spectrumAnalyzer!.TryProcessStereo(buffer.Samples, buffer.Format, out var stereo) && stereo is not null)
+                {
+                    pendingStereo = stereo;
+                    pendingSpectrum = stereo.Mono;
+                }
+            }
+            else if (spectrumAnalyzer!.TryProcess(buffer.Samples, buffer.Format, out var mono) && mono is not null)
+            {
+                pendingSpectrum = mono;
+            }
+
+            StereoTruePeakMeasurement truePeak;
+            LoudnessMeasurement loudness;
+            lock (_measurementGate)
+            {
+                truePeak = _truePeakMeter.Process(buffer.Samples, buffer.Format.Channels);
+                loudness = _loudnessMeter.Process(buffer.Samples, buffer.Format);
+            }
+
+            pendingPeaks = MergePeaks(pendingPeaks, truePeak.Current);
             if (timestamp - _lastFrameTimestamp < MinimumFrameInterval)
             {
                 continue;
             }
 
             _lastFrameTimestamp = timestamp;
-            var levels = _levelMeter.Process(buffer.Samples, buffer.Format.Channels);
-            Spectrum? spectrum;
-            StereoSpectrum? stereoSpectrum = null;
-            if (buffer.Format.Channels >= 2)
-            {
-                spectrumAnalyzer!.TryProcessStereo(buffer.Samples, buffer.Format, out stereoSpectrum);
-                spectrum = stereoSpectrum?.Mono;
-            }
-            else
-            {
-                spectrumAnalyzer!.TryProcess(buffer.Samples, buffer.Format, out spectrum);
-            }
-            AdvancedMeasurementFrame advancedMeasurements;
-            lock (_measurementGate)
-            {
-                advancedMeasurements = new AdvancedMeasurementFrame(
-                    _truePeakMeter.Process(buffer.Samples, buffer.Format.Channels),
-                    _loudnessMeter.Process(buffer.Samples, buffer.Format),
-                    stereoSpectrum,
-                    buffer.Format.Channels >= 2 ? PhaseScopeFrame.FromInterleaved(buffer.Samples, buffer.Format.Channels) : null);
-            }
+            var advancedMeasurements = new AdvancedMeasurementFrame(
+                new StereoTruePeakMeasurement(pendingPeaks, truePeak.Maximum, truePeak.Overload),
+                loudness,
+                pendingStereo,
+                buffer.Format.Channels >= 2 ? PhaseScopeFrame.FromInterleaved(buffer.Samples, buffer.Format.Channels) : null);
             var droppedBufferCount = Interlocked.Exchange(ref _droppedBufferCount, 0);
             if (droppedBufferCount > 0)
             {
@@ -354,8 +371,39 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
                     droppedBufferCount));
             }
 
-            frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, levels, spectrum, droppedBufferCount, advancedMeasurements));
+            frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, pendingLevels!, pendingSpectrum, droppedBufferCount, advancedMeasurements));
+            pendingPeaks = [];
+            pendingLevels = null;
+            pendingSpectrum = null;
+            pendingStereo = null;
         }
+    }
+
+    private static float[] MergePeaks(float[] pending, IReadOnlyList<float> current)
+    {
+        var merged = new float[current.Count];
+        for (var channel = 0; channel < merged.Length; channel++)
+        {
+            merged[channel] = Math.Max(channel < pending.Length ? pending[channel] : 0f, current[channel]);
+        }
+
+        return merged;
+    }
+
+    private static IReadOnlyList<ChannelLevel> MergeLevels(IReadOnlyList<ChannelLevel>? pending, IReadOnlyList<ChannelLevel> latest)
+    {
+        if (pending is null || pending.Count != latest.Count)
+        {
+            return latest;
+        }
+
+        var merged = new ChannelLevel[latest.Count];
+        for (var channel = 0; channel < merged.Length; channel++)
+        {
+            merged[channel] = new ChannelLevel(Math.Max(pending[channel].Peak, latest[channel].Peak), latest[channel].Rms);
+        }
+
+        return merged;
     }
 
     private static EngineDiagnostic CreateDiagnostic(

@@ -99,6 +99,39 @@ public sealed class AudioAnalysisEngineTests
         public OutputDeviceInfo? GetDefaultDevice() => device;
     }
 
+    [Fact]
+    public async Task MetersSeeEveryBufferEvenWhenFramePublishingIsThrottled()
+    {
+        var capture = new FakeCapture();
+        var device = new OutputDeviceInfo("default", "Speakers", true);
+        await using var engine = new AudioAnalysisEngine(new FakeDeviceProvider(device), new FakeCaptureFactory(capture));
+        await engine.StartAsync();
+        var format = new AudioFormat(48_000, 2);
+        float[] Buffer(float level) => Enumerable.Repeat(level, 960).ToArray();
+
+        // A burst small enough for the sample queue (8) but far inside one throttle interval;
+        // the loud buffer is neither the first (always published) nor the last.
+        for (var index = 0; index < 6; index++)
+        {
+            capture.Publish(Buffer(index == 2 ? 0.9f : 0.1f), format);
+        }
+
+        await Task.Delay(120);
+        capture.Publish(Buffer(0.05f), format);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(600));
+        AnalysisFrame? last = null;
+        try
+        {
+            await foreach (var frame in engine.ReadFrames(cancellation.Token)) last = frame;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        Assert.NotNull(last);
+        Assert.True(last!.AdvancedMeasurements!.TruePeak.Maximum[0] >= 0.89f, "The loud buffer must reach the true-peak meter.");
+    }
+
     private sealed class FakeCaptureFactory(FakeCapture capture) : IAudioCaptureFactory
     {
         public IAudioCapture Create(OutputDeviceInfo device) => capture;
