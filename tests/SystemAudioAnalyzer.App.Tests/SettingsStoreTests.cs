@@ -49,6 +49,32 @@ public sealed class SettingsStoreTests
         Assert.Single(diagnostics);
     }
 
+    [Fact]
+    public async Task InvalidSavedSettingsDoNotPreventStartupWhenDiagnosticLoggerFails()
+    {
+        var directory = CreateSettingsDirectory();
+        var store = new SettingsStore(directory, _ => throw new IOException("Log path unavailable."));
+        await File.WriteAllTextAsync(Path.Combine(directory, "settings.json"), "not json");
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal(MeasurementSettings.Default, loaded);
+    }
+
+    [Fact]
+    public async Task SaveRejectsInvalidSettingsWithoutCreatingAFile()
+    {
+        var directory = CreateSettingsDirectory();
+        var store = new SettingsStore(directory);
+        var invalid = MeasurementSettings.Default with
+        {
+            Analyzer = MeasurementSettings.Default.Analyzer with { CursorColor = "not-a-color" },
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => store.SaveAsync(invalid));
+        Assert.False(File.Exists(store.SettingsPath));
+    }
+
     private static string CreateSettingsDirectory()
     {
         var directory = Path.Combine(Path.GetTempPath(), "AAAnalyzerTests", Guid.NewGuid().ToString("N"));

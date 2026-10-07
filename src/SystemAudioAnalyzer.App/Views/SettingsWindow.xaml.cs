@@ -11,6 +11,8 @@ public partial class SettingsWindow : Window
 
     public event EventHandler<SettingsChangedEventArgs>? SettingsCancelled;
 
+    public event EventHandler<SettingsSaveFailedEventArgs>? SettingsSaveFailed;
+
     public SettingsWindow(SettingsDialogViewModel viewModel)
     {
         InitializeComponent();
@@ -29,26 +31,51 @@ public partial class SettingsWindow : Window
 
     private async void Accept(object sender, RoutedEventArgs eventArgs)
     {
-        var settings = await _viewModel.ApplyAsync();
-        SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
-        DialogResult = true;
+        try
+        {
+            var settings = await _viewModel.ApplyAsync();
+            SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
+            DialogResult = true;
+        }
+        catch (Exception exception) { ShowSaveError(exception); }
     }
 
     private async void Apply(object sender, RoutedEventArgs eventArgs)
     {
-        var settings = await _viewModel.ApplyAsync();
-        SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
+        try
+        {
+            var settings = await _viewModel.ApplyAsync();
+            SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
+        }
+        catch (Exception exception) { ShowSaveError(exception); }
     }
 
     private async void Cancel(object sender, RoutedEventArgs eventArgs)
     {
-        var settings = await _viewModel.CancelAsync();
-        SettingsCancelled?.Invoke(this, new SettingsChangedEventArgs(settings));
-        DialogResult = false;
+        try
+        {
+            var settings = await _viewModel.CancelAsync();
+            SettingsCancelled?.Invoke(this, new SettingsChangedEventArgs(settings));
+            DialogResult = false;
+        }
+        catch (Exception exception) { ShowSaveError(exception); }
+    }
+
+    private void ShowSaveError(Exception exception)
+    {
+        SettingsSaveFailed?.Invoke(this, new SettingsSaveFailedEventArgs(exception));
+        SaveError.Text = exception is ArgumentException
+            ? "Проверьте значения параметров и формат цветов."
+            : "Не удалось сохранить настройки. Проверьте доступ к профилю пользователя.";
     }
 }
 
 public sealed class SettingsChangedEventArgs(MeasurementSettings settings) : EventArgs
 {
     public MeasurementSettings Settings { get; } = settings;
+}
+
+public sealed class SettingsSaveFailedEventArgs(Exception exception) : EventArgs
+{
+    public Exception Exception { get; } = exception;
 }

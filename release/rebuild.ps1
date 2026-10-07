@@ -38,8 +38,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."
 }
 
+$localePattern = '^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$'
 $localeDirectories = Get-ChildItem -LiteralPath $outputDirectory -Directory |
-    Where-Object { $_.Name -match '^[a-z]{2}(-[A-Z]{2})?$' -and $_.Name -notin @('en', 'ru') }
+    Where-Object { $_.Name -match $localePattern -and $_.Name -notin @('en', 'ru') }
 foreach ($localeDirectory in $localeDirectories) {
     Remove-Item -LiteralPath $localeDirectory.FullName -Recurse -Force
 }

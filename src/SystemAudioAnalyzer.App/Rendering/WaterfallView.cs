@@ -50,7 +50,7 @@ public sealed class WaterfallView : FrameworkElement
         {
             var x = FrequencyScale.ToNormalized(hertz) * layout.LeftBounds.Width;
             context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(x, layout.LeftBounds.Bottom), new Point(x, layout.LeftBounds.Bottom + 4));
-            var label = FormatTick(hertz);
+            var label = FrequencyScale.Format(hertz);
             var labelWidth = label.Length * 5.4;
             var labelX = hertz >= 10_000 ? x - labelWidth - 2 : x + 2;
             DrawText(context, label, labelX, layout.LeftBounds.Bottom + 5, 9, Brushes.LightGray);
@@ -99,16 +99,12 @@ public sealed class WaterfallView : FrameworkElement
     private void DrawCursor(DrawingContext context, Rect bounds)
     {
         var x = bounds.Left + bounds.Width * _cursor;
-        context.DrawLine(new Pen(Brushes.White, 1), new Point(x, bounds.Top), new Point(x, bounds.Bottom));
+        context.DrawLine(new Pen(ColorBrush(Settings.Analyzer.CursorColor), 1), new Point(x, bounds.Top), new Point(x, bounds.Bottom));
     }
 
     private void DrawText(DrawingContext context, string text, double x, double y, double size, Brush brush) =>
         context.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI"), size, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(x, y));
+            new Typeface("Segoe UI"), size, ColorBrush(Settings.Analyzer.TextColor), VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(x, y));
 
-    private static string FormatTick(double hertz) => hertz switch
-    {
-        < 1_000 => hertz.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " Hz",
-        _ => (hertz / 1_000).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "k",
-    };
+    private static Brush ColorBrush(string color) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
 }

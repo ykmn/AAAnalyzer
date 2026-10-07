@@ -240,6 +240,13 @@ dotnet run --project src/SystemAudioAnalyzer.App
 L слева, R справа; при изменении окна обе области перерисовываются по новым
 координатам.
 
+Рабочая область содержит вкладки Waterfall, RTA, Loudness и Phase Scope; у
+каждой — общие действия сброса, PNG-снимка и настроек. В диалоге настроек
+параметры страниц Analyzer, Waterfall, Meters, Loudness, RTA и Phase сохраняются
+в `%LocalAppData%\AAAnalyzer\settings.json`. Изменения применяются кнопкой
+«Применить»/«OK»; «Отмена» возвращает исходный снимок. Снимки экрана сохраняются
+в `Screenshots` рядом с приложением. FFT size и окно пока фиксированы движком.
+
 Portable-сборка GUI:
 
 ```powershell

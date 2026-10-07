@@ -32,7 +32,7 @@ public sealed class SettingsStore
             var settings = await JsonSerializer.DeserializeAsync<MeasurementSettings>(stream, _serializerOptions, cancellationToken);
             if (settings is null || !IsValid(settings))
             {
-                _diagnostic?.Invoke("Settings fallback: file does not contain a complete, valid settings document.");
+                ReportDiagnostic("Settings fallback: file does not contain a complete, valid settings document.");
                 return MeasurementSettings.Default;
             }
 
@@ -40,8 +40,20 @@ public sealed class SettingsStore
         }
         catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException)
         {
-            _diagnostic?.Invoke("Settings fallback: " + exception.Message);
+            ReportDiagnostic("Settings fallback: " + exception.Message);
             return MeasurementSettings.Default;
+        }
+    }
+
+    private void ReportDiagnostic(string message)
+    {
+        try
+        {
+            _diagnostic?.Invoke(message);
+        }
+        catch
+        {
+            // Diagnostics must never prevent startup fallback.
         }
     }
 
@@ -86,6 +98,11 @@ public sealed class SettingsStore
     public async Task SaveAsync(MeasurementSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        if (!IsValid(settings))
+        {
+            throw new ArgumentException("Settings contain invalid values.", nameof(settings));
+        }
+
         Directory.CreateDirectory(_settingsDirectory);
         var temporaryPath = SettingsPath + ".tmp";
         try

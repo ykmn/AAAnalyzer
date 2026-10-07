@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         }
 
         var dialog = new SettingsWindow(new SettingsDialogViewModel(_settingsStore, mainViewModel.MeasurementSettings, page)) { Owner = this };
+        dialog.SettingsSaveFailed += (_, args) => _logger.Write(args.Exception);
         dialog.SettingsApplied += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
         dialog.SettingsCancelled += (_, args) => mainViewModel.MeasurementSettings = args.Settings;
         dialog.ShowDialog();
