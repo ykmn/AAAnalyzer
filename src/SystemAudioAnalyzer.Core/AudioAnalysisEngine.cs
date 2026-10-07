@@ -290,13 +290,25 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
 
             _lastFrameTimestamp = timestamp;
             var levels = _levelMeter.Process(buffer.Samples, buffer.Format.Channels);
-            _spectrumAnalyzer.TryProcess(buffer.Samples, buffer.Format, out var spectrum);
+            Spectrum? spectrum;
+            StereoSpectrum? stereoSpectrum = null;
+            if (buffer.Format.Channels >= 2)
+            {
+                _spectrumAnalyzer.TryProcessStereo(buffer.Samples, buffer.Format, out stereoSpectrum);
+                spectrum = stereoSpectrum?.Mono;
+            }
+            else
+            {
+                _spectrumAnalyzer.TryProcess(buffer.Samples, buffer.Format, out spectrum);
+            }
             AdvancedMeasurementFrame advancedMeasurements;
             lock (_measurementGate)
             {
                 advancedMeasurements = new AdvancedMeasurementFrame(
                     _truePeakMeter.Process(buffer.Samples, buffer.Format.Channels),
-                    _loudnessMeter.Process(buffer.Samples, buffer.Format));
+                    _loudnessMeter.Process(buffer.Samples, buffer.Format),
+                    stereoSpectrum,
+                    buffer.Format.Channels >= 2 ? PhaseScopeFrame.FromInterleaved(buffer.Samples, buffer.Format.Channels) : null);
             }
             var droppedBufferCount = Interlocked.Exchange(ref _droppedBufferCount, 0);
             if (droppedBufferCount > 0)

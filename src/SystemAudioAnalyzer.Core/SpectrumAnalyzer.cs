@@ -5,6 +5,8 @@ public sealed class SpectrumAnalyzer
     private readonly int _fftSize;
     private readonly int _hopSize;
     private readonly List<float> _monoSamples = [];
+    private readonly List<float> _leftSamples = [];
+    private readonly List<float> _rightSamples = [];
     private AudioFormat? _format;
 
     public SpectrumAnalyzer(int fftSize = 4096)
@@ -64,6 +66,56 @@ public sealed class SpectrumAnalyzer
         _monoSamples.RemoveRange(0, _hopSize);
         spectrum = new Spectrum(format.SampleRate, _fftSize, magnitudes);
         return true;
+    }
+
+    public bool TryProcessStereo(ReadOnlySpan<float> interleavedSamples, AudioFormat format, out StereoSpectrum? spectrum)
+    {
+        if (format.Channels < 2)
+        {
+            spectrum = null;
+            return false;
+        }
+
+        var hasMonoSpectrum = TryProcess(interleavedSamples, format, out var mono);
+        var frameCount = interleavedSamples.Length / format.Channels;
+        for (var frame = 0; frame < frameCount; frame++)
+        {
+            _leftSamples.Add(interleavedSamples[frame * format.Channels]);
+            _rightSamples.Add(interleavedSamples[(frame * format.Channels) + 1]);
+        }
+
+        if (!hasMonoSpectrum || mono is null || _leftSamples.Count < _fftSize || _rightSamples.Count < _fftSize)
+        {
+            spectrum = null;
+            return false;
+        }
+
+        var left = BuildSpectrum(_leftSamples, format);
+        var right = BuildSpectrum(_rightSamples, format);
+        _leftSamples.RemoveRange(0, _hopSize);
+        _rightSamples.RemoveRange(0, _hopSize);
+        spectrum = new StereoSpectrum(mono, left, right);
+        return true;
+    }
+
+    private Spectrum BuildSpectrum(IReadOnlyList<float> samples, AudioFormat format)
+    {
+        var real = new float[_fftSize];
+        var imaginary = new float[_fftSize];
+        for (var index = 0; index < _fftSize; index++)
+        {
+            var window = 0.5f - (0.5f * MathF.Cos((2 * MathF.PI * index) / (_fftSize - 1)));
+            real[index] = samples[index] * window;
+        }
+
+        Transform(real, imaginary);
+        var magnitudes = new float[(_fftSize / 2) + 1];
+        for (var index = 0; index < magnitudes.Length; index++)
+        {
+            magnitudes[index] = MathF.Sqrt((real[index] * real[index]) + (imaginary[index] * imaginary[index]));
+        }
+
+        return new Spectrum(format.SampleRate, _fftSize, magnitudes);
     }
 
     private static void Transform(float[] real, float[] imaginary)
