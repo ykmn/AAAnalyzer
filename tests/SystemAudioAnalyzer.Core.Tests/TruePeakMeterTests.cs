@@ -76,4 +76,13 @@ public sealed class TruePeakMeterTests
 
         return samples;
     }
+
+    [Fact]
+    public void ResettingMaximumOrOverloadBeforeAnySamplesIsHarmless()
+    {
+        var meter = new TruePeakMeter();
+
+        meter.ResetMaximum(0);
+        meter.ResetOverload(1);
+    }
 }

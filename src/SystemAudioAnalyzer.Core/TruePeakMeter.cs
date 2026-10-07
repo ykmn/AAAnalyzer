@@ -58,12 +58,14 @@ public sealed class TruePeakMeter
 
     public void ResetMaximum(int channel)
     {
+        if (_maximum.Length == 0) return;
         ValidateChannel(channel);
         _maximum[channel] = 0f;
     }
 
     public void ResetOverload(int channel)
     {
+        if (_overload.Length == 0) return;
         ValidateChannel(channel);
         _overload[channel] = false;
     }

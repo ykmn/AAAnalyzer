@@ -1,3 +1,4 @@
+using System.Windows;
 using SystemAudioAnalyzer.App.Rendering;
 
 namespace SystemAudioAnalyzer.App.Tests;
@@ -46,5 +47,42 @@ public sealed class MeterRailLayoutTests
         var layout = MeterRailLayout.Calculate(WorkspaceLayout.PeakRailWidth, 20);
 
         Assert.True(layout.LeftMeter.Height >= 1);
+    }
+
+    [Fact]
+    public void CurrentReadoutSitsBetweenMaximumAndOverloadAndOverloadIsCompact()
+    {
+        var layout = MeterRailLayout.Calculate(WorkspaceLayout.PeakRailWidth, 400);
+
+        Assert.True(layout.LeftMaximum.Bottom <= layout.LeftCurrent.Top);
+        Assert.True(layout.LeftCurrent.Bottom < layout.LeftOverload.Top);
+        Assert.Equal(layout.LeftCurrent.Width, layout.RightCurrent.Width);
+        Assert.Equal(8, layout.LeftOverload.Height);
+        Assert.True(layout.LeftOverload.Bottom < layout.LeftMeter.Top);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ClickingEitherChannelsReadoutOrIndicatorSelectsTheSameReset(bool leftChannel)
+    {
+        var layout = MeterRailLayout.Calculate(WorkspaceLayout.PeakRailWidth, 400);
+        var maximum = leftChannel ? layout.LeftMaximum : layout.RightMaximum;
+        var current = leftChannel ? layout.LeftCurrent : layout.RightCurrent;
+        var overload = leftChannel ? layout.LeftOverload : layout.RightOverload;
+
+        Assert.Equal(MeterRailResetTarget.Maximum, layout.HitTest(new Point(maximum.Left + 2, maximum.Top + 2)));
+        Assert.Equal(MeterRailResetTarget.Maximum, layout.HitTest(new Point(current.Left + 2, current.Top + 2)));
+        Assert.Equal(MeterRailResetTarget.Overload, layout.HitTest(new Point(overload.Left + 2, overload.Top + 1)));
+        Assert.Equal(MeterRailResetTarget.Overload, layout.HitTest(new Point(overload.Left + 2, overload.Bottom + 2)));
+    }
+
+    [Fact]
+    public void ClickingTheMeterBarsOrScaleResetsNothing()
+    {
+        var layout = MeterRailLayout.Calculate(WorkspaceLayout.PeakRailWidth, 400);
+
+        Assert.Null(layout.HitTest(new Point(layout.LeftMeter.Left + 2, layout.LeftMeter.Top + 40)));
+        Assert.Null(layout.HitTest(new Point(layout.LufsMeter.Left + 2, layout.LufsMeter.Top + 40)));
     }
 }

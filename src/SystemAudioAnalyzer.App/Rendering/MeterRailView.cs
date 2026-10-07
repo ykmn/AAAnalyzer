@@ -26,13 +26,15 @@ public sealed class MeterRailView : FrameworkElement
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs eventArgs)
     {
-        var point = eventArgs.GetPosition(this);
-        var layout = MeterRailLayout.Calculate(ActualWidth, ActualHeight);
-        if (layout.LeftMaximum.Contains(point)) ResetRequested?.Invoke(this, new MeterRailResetEventArgs(0, MeterRailResetTarget.Maximum));
-        else if (layout.RightMaximum.Contains(point)) ResetRequested?.Invoke(this, new MeterRailResetEventArgs(1, MeterRailResetTarget.Maximum));
-        else if (layout.LeftOverload.Contains(point)) ResetRequested?.Invoke(this, new MeterRailResetEventArgs(0, MeterRailResetTarget.Overload));
-        else if (layout.RightOverload.Contains(point)) ResetRequested?.Invoke(this, new MeterRailResetEventArgs(1, MeterRailResetTarget.Overload));
-        else { base.OnMouseLeftButtonDown(eventArgs); return; }
+        var target = MeterRailLayout.Calculate(ActualWidth, ActualHeight).HitTest(eventArgs.GetPosition(this));
+        if (target is null)
+        {
+            base.OnMouseLeftButtonDown(eventArgs);
+            return;
+        }
+
+        // The reset applies to both channels, whichever readout or lamp was clicked.
+        for (var channel = 0; channel < 2; channel++) ResetRequested?.Invoke(this, new MeterRailResetEventArgs(channel, target.Value));
         eventArgs.Handled = true;
     }
 
@@ -47,6 +49,11 @@ public sealed class MeterRailView : FrameworkElement
         var lufsScale = MeterRailLayout.ResolveLufsScale(meters);
         var lufsBrush = ColorBrush(meters.LufsColor);
         var dimText = new SolidColorBrush(Color.FromRgb(120, 135, 150));
+        if (meters.ShowPeakReadout)
+        {
+            DrawText(context, "MAX", new Rect(layout.DbScale.Left, 2, layout.DbScale.Width, 12), fontSize - 1, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Right);
+            DrawText(context, "NOW", new Rect(layout.DbScale.Left, 15, layout.DbScale.Width, 12), fontSize - 1, dimText, TextAlignment.Right);
+        }
         if (meters.ShowDbScale)
         {
             foreach (var tick in AxisTicks.PeakRailDb(meters.DisplayRangeDb))
@@ -62,15 +69,17 @@ public sealed class MeterRailView : FrameworkElement
             var meter = channel == 0 ? layout.LeftMeter : layout.RightMeter;
             var overload = measurement?.Overload.ElementAtOrDefault(channel) == true;
             var maximum = measurement?.Maximum.ElementAtOrDefault(channel) ?? 0f;
+            var currentPeak = measurement?.Current.ElementAtOrDefault(channel) ?? 0f;
+            var currentBounds = channel == 0 ? layout.LeftCurrent : layout.RightCurrent;
             var display = _displayStates[channel];
             if (meters.ShowPeakReadout)
             {
-                DrawText(context, FormatDb(maximum), maximumBounds, fontSize, Brushes.White, TextAlignment.Center);
+                DrawText(context, FormatDb(maximum), maximumBounds, fontSize, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Center);
+                DrawText(context, FormatDb(currentPeak), currentBounds, fontSize, Brushes.White, TextAlignment.Center);
             }
             if (meters.ShowClipIndicator)
             {
                 context.DrawRectangle(overload ? ColorBrush(meters.ClipColor) : new SolidColorBrush(Color.FromRgb(74, 15, 15)), null, overloadBounds);
-                DrawText(context, "C", overloadBounds, fontSize + 1, Brushes.White, TextAlignment.Center, FontWeights.Bold);
             }
             context.DrawRectangle(Brushes.Black, new Pen(Brushes.DimGray, 1), meter);
             var peakFill = MeterRailLayout.CalculateFillRatio(display.Peak, meters.DisplayRangeDb) * meter.Height;

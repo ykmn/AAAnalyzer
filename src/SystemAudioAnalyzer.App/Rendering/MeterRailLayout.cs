@@ -6,7 +6,8 @@ namespace SystemAudioAnalyzer.App.Rendering;
 public sealed record LufsScaleRange(double TopDb, double BottomDb, double StepDb);
 
 public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect LeftOverload, Rect RightOverload, Rect LeftMeter, Rect RightMeter,
-    Rect DbScale, Rect LufsMeter, Rect LufsScale, Rect ChannelLabels, Rect LufsReadout, Rect LufsCaption)
+    Rect DbScale, Rect LufsMeter, Rect LufsScale, Rect ChannelLabels, Rect LufsReadout, Rect LufsCaption,
+    Rect LeftCurrent, Rect RightCurrent)
 {
     public static double CalculateFillRatio(float linearLevel, double displayRangeDb)
     {
@@ -71,7 +72,7 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
     public static MeterRailLayout Calculate(double width, double height)
     {
         const double edge = 2d, scaleWidth = 26d, gap = 2d, lufsGap = 4d, lufsWidth = 14d, lufsScaleWidth = 22d;
-        const double rowHeight = 14d, overloadHeight = 16d, readoutHeight = 22d, bottomReserve = 54d;
+        const double rowHeight = 14d, peakRowHeight = 12d, overloadHeight = 8d, readoutHeight = 22d, bottomReserve = 54d;
         var fixedWidth = (edge * 2) + scaleWidth + (gap * 2) + lufsGap + lufsWidth + lufsScaleWidth;
         var barWidth = Math.Max(1d, (width - fixedWidth) / 2d);
         var scaleX = edge;
@@ -83,12 +84,25 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
         var labels = new Rect(edge, meterTop + meterHeight + 2d, Math.Max(1d, width - (edge * 2)), rowHeight);
         var readout = new Rect(0, labels.Bottom, Math.Max(1d, width), readoutHeight);
         return new MeterRailLayout(
-            new Rect(leftX, 2, barWidth, rowHeight), new Rect(rightX, 2, barWidth, rowHeight),
-            new Rect(leftX, 20, barWidth, overloadHeight), new Rect(rightX, 20, barWidth, overloadHeight),
+            new Rect(leftX, 2, barWidth, peakRowHeight), new Rect(rightX, 2, barWidth, peakRowHeight),
+            new Rect(leftX, 29, barWidth, overloadHeight), new Rect(rightX, 29, barWidth, overloadHeight),
             new Rect(leftX, meterTop, barWidth, meterHeight), new Rect(rightX, meterTop, barWidth, meterHeight),
             new Rect(scaleX, meterTop, scaleWidth, meterHeight),
             new Rect(lufsX, meterTop, lufsWidth, meterHeight),
             new Rect(lufsX + lufsWidth, meterTop, lufsScaleWidth, meterHeight),
-            labels, readout, new Rect(0, readout.Bottom, Math.Max(1d, width), rowHeight));
+            labels, readout, new Rect(0, readout.Bottom, Math.Max(1d, width), rowHeight),
+            new Rect(leftX, 15, barWidth, peakRowHeight), new Rect(rightX, 15, barWidth, peakRowHeight));
+    }
+
+    /// <summary>Clicks on either channel's readouts or overload lamp reset that value for both channels.</summary>
+    public MeterRailResetTarget? HitTest(Point point)
+    {
+        if (LeftMaximum.Contains(point) || RightMaximum.Contains(point) || LeftCurrent.Contains(point) || RightCurrent.Contains(point))
+            return MeterRailResetTarget.Maximum;
+        var left = LeftOverload;
+        var right = RightOverload;
+        left.Inflate(0, 3);
+        right.Inflate(0, 3);
+        return left.Contains(point) || right.Contains(point) ? MeterRailResetTarget.Overload : null;
     }
 }
