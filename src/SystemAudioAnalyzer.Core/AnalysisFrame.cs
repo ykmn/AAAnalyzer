@@ -9,7 +9,8 @@ public sealed class AnalysisFrame
         AudioFormat format,
         IEnumerable<ChannelLevel> levels,
         Spectrum? spectrum,
-        long droppedBufferCount = 0)
+        long droppedBufferCount = 0,
+        AdvancedMeasurementFrame? advancedMeasurements = null)
     {
         ArgumentNullException.ThrowIfNull(format);
         ArgumentNullException.ThrowIfNull(levels);
@@ -19,6 +20,7 @@ public sealed class AnalysisFrame
         Levels = new ReadOnlyCollection<ChannelLevel>(levels.ToArray());
         Spectrum = spectrum;
         DroppedBufferCount = droppedBufferCount;
+        AdvancedMeasurements = advancedMeasurements;
     }
 
     public DateTimeOffset Timestamp { get; }
@@ -30,4 +32,6 @@ public sealed class AnalysisFrame
     public Spectrum? Spectrum { get; }
 
     public long DroppedBufferCount { get; }
+
+    public AdvancedMeasurementFrame? AdvancedMeasurements { get; }
 }

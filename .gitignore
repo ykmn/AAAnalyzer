@@ -3,5 +3,6 @@ obj/
 .vs/
 TestResults/
 work/
+.superpowers/
 release/AAAnalyzer-*/
 *.user

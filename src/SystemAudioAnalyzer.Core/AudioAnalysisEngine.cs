@@ -12,6 +12,8 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     private readonly IAudioCaptureFactory _captureFactory;
     private readonly LevelMeter _levelMeter = new();
     private readonly SpectrumAnalyzer _spectrumAnalyzer = new();
+    private readonly TruePeakMeter _truePeakMeter = new();
+    private readonly object _measurementGate = new();
     private readonly EngineStateMachine _stateMachine = new();
     private Channel<AudioSamplesAvailableEventArgs>? _samples;
     private Channel<AnalysisFrame>? _frames;
@@ -53,6 +55,14 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     public event EventHandler<EngineDiagnostic>? DiagnosticPublished;
 
     public event EventHandler<EngineFaultedEventArgs>? Faulted;
+
+    public void ResetTruePeak(int channel)
+    {
+        lock (_measurementGate)
+        {
+            _truePeakMeter.Reset(channel);
+        }
+    }
 
     public Task StartAsync(OutputDeviceInfo? device = null)
     {
@@ -272,6 +282,11 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             _lastFrameTimestamp = timestamp;
             var levels = _levelMeter.Process(buffer.Samples, buffer.Format.Channels);
             _spectrumAnalyzer.TryProcess(buffer.Samples, buffer.Format, out var spectrum);
+            AdvancedMeasurementFrame advancedMeasurements;
+            lock (_measurementGate)
+            {
+                advancedMeasurements = new AdvancedMeasurementFrame(_truePeakMeter.Process(buffer.Samples, buffer.Format.Channels));
+            }
             var droppedBufferCount = Interlocked.Exchange(ref _droppedBufferCount, 0);
             if (droppedBufferCount > 0)
             {
@@ -283,7 +298,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
                     droppedBufferCount));
             }
 
-            frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, levels, spectrum, droppedBufferCount));
+            frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, levels, spectrum, droppedBufferCount, advancedMeasurements));
         }
     }
 
