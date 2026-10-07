@@ -11,7 +11,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     private readonly IAudioOutputDeviceProvider _deviceProvider;
     private readonly IAudioCaptureFactory _captureFactory;
     private readonly LevelMeter _levelMeter = new();
-    private readonly SpectrumAnalyzer _spectrumAnalyzer = new();
+    private AnalysisConfiguration _requestedConfiguration = new(4096, SpectrumWindow.Hann);
     private readonly TruePeakMeter _truePeakMeter = new();
     private readonly LoudnessMeter _loudnessMeter = new();
     private readonly object _measurementGate = new();
@@ -56,6 +56,12 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
     public event EventHandler<EngineDiagnostic>? DiagnosticPublished;
 
     public event EventHandler<EngineFaultedEventArgs>? Faulted;
+
+    public void SetAnalysisConfiguration(AnalysisConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        Volatile.Write(ref _requestedConfiguration, configuration);
+    }
 
     public void ResetTruePeak(int channel)
     {
@@ -290,8 +296,17 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         ChannelWriter<AnalysisFrame> frames,
         CancellationToken cancellationToken)
     {
+        AnalysisConfiguration? activeConfiguration = null;
+        SpectrumAnalyzer? spectrumAnalyzer = null;
         await foreach (var buffer in samples.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
+            var requestedConfiguration = Volatile.Read(ref _requestedConfiguration);
+            if (requestedConfiguration != activeConfiguration)
+            {
+                spectrumAnalyzer = new SpectrumAnalyzer(requestedConfiguration.FftSize, requestedConfiguration.Window);
+                activeConfiguration = requestedConfiguration;
+            }
+
             var timestamp = DateTimeOffset.UtcNow;
             if (timestamp - _lastFrameTimestamp < MinimumFrameInterval)
             {
@@ -304,12 +319,12 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             StereoSpectrum? stereoSpectrum = null;
             if (buffer.Format.Channels >= 2)
             {
-                _spectrumAnalyzer.TryProcessStereo(buffer.Samples, buffer.Format, out stereoSpectrum);
+                spectrumAnalyzer!.TryProcessStereo(buffer.Samples, buffer.Format, out stereoSpectrum);
                 spectrum = stereoSpectrum?.Mono;
             }
             else
             {
-                _spectrumAnalyzer.TryProcess(buffer.Samples, buffer.Format, out spectrum);
+                spectrumAnalyzer!.TryProcess(buffer.Samples, buffer.Format, out spectrum);
             }
             AdvancedMeasurementFrame advancedMeasurements;
             lock (_measurementGate)

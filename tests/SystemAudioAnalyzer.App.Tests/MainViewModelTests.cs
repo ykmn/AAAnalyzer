@@ -151,6 +151,8 @@ public sealed class MainViewModelTests
 
         public void ResetLoudness() => ResetLoudnessCount++;
 
+        public void SetAnalysisConfiguration(AnalysisConfiguration configuration) { }
+
         public void PublishFrame(AnalysisFrame frame) => FrameAvailable?.Invoke(this, frame);
 
         public void PublishState(AudioSourceState state) =>
@@ -174,6 +176,8 @@ public sealed class MainViewModelTests
         public void ResetTruePeakOverload(int channel) { }
 
         public void ResetLoudness() { }
+
+        public void SetAnalysisConfiguration(AnalysisConfiguration configuration) { }
 
         public void CompleteStart() => _startCompletion.SetResult();
 

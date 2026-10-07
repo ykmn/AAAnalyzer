@@ -72,6 +72,8 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
 
     public void ResetLoudness() => _engine.ResetLoudness();
 
+    public void SetAnalysisConfiguration(AnalysisConfiguration configuration) => _engine.SetAnalysisConfiguration(configuration);
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed)

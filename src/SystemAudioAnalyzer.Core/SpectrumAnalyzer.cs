@@ -4,20 +4,39 @@ public sealed class SpectrumAnalyzer
 {
     private readonly int _fftSize;
     private readonly int _hopSize;
+    private readonly float[] _window;
     private readonly List<float> _monoSamples = [];
     private readonly List<float> _leftSamples = [];
     private readonly List<float> _rightSamples = [];
     private AudioFormat? _format;
 
-    public SpectrumAnalyzer(int fftSize = 4096)
+    public SpectrumAnalyzer(int fftSize = 4096, SpectrumWindow window = SpectrumWindow.Hann)
     {
         if (fftSize < 2 || (fftSize & (fftSize - 1)) != 0)
         {
             throw new ArgumentOutOfRangeException(nameof(fftSize), "FFT size must be a power of two.");
         }
 
+        if (!Enum.IsDefined(window))
+        {
+            throw new ArgumentOutOfRangeException(nameof(window));
+        }
+
         _fftSize = fftSize;
         _hopSize = fftSize / 4;
+        _window = new float[fftSize];
+        for (var index = 0; index < fftSize; index++)
+        {
+            var angle = 2 * MathF.PI * index / (fftSize - 1);
+            _window[index] = window switch
+            {
+                SpectrumWindow.Rectangular => 1f,
+                SpectrumWindow.Hann => 0.5f - 0.5f * MathF.Cos(angle),
+                SpectrumWindow.Hamming => 0.54f - 0.46f * MathF.Cos(angle),
+                SpectrumWindow.Blackman => 0.42f - 0.5f * MathF.Cos(angle) + 0.08f * MathF.Cos(2 * angle),
+                _ => throw new ArgumentOutOfRangeException(nameof(window)),
+            };
+        }
     }
 
     public bool TryProcess(ReadOnlySpan<float> interleavedSamples, AudioFormat format, out Spectrum? spectrum)
@@ -52,8 +71,7 @@ public sealed class SpectrumAnalyzer
         var imaginary = new float[_fftSize];
         for (var index = 0; index < _fftSize; index++)
         {
-            var window = 0.5f - (0.5f * MathF.Cos((2 * MathF.PI * index) / (_fftSize - 1)));
-            real[index] = _monoSamples[index] * window;
+            real[index] = _monoSamples[index] * _window[index];
         }
 
         Transform(real, imaginary);
@@ -104,8 +122,7 @@ public sealed class SpectrumAnalyzer
         var imaginary = new float[_fftSize];
         for (var index = 0; index < _fftSize; index++)
         {
-            var window = 0.5f - (0.5f * MathF.Cos((2 * MathF.PI * index) / (_fftSize - 1)));
-            real[index] = samples[index] * window;
+            real[index] = samples[index] * _window[index];
         }
 
         Transform(real, imaginary);

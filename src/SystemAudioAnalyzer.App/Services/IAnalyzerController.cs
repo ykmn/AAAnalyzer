@@ -19,4 +19,6 @@ public interface IAnalyzerController
     void ResetTruePeakOverload(int channel);
 
     void ResetLoudness();
+
+    void SetAnalysisConfiguration(AnalysisConfiguration configuration);
 }

@@ -7,6 +7,34 @@ namespace SystemAudioAnalyzer.App.Tests;
 public sealed class AnalyzerControllerTests
 {
     [Fact]
+    public async Task ConfigurationUpdateChangesPublishedFftWithoutRestartingSource()
+    {
+        var source = new FakeSource();
+        await using var controller = CreateController(_ => source);
+        IAnalyzerController api = controller;
+        var initialFrame = new TaskCompletionSource<AnalysisFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var updatedFrame = new TaskCompletionSource<AnalysisFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.FrameAvailable += (_, frame) =>
+        {
+            if (frame.Spectrum?.FftSize == 4096) initialFrame.TrySetResult(frame);
+            if (frame.Spectrum?.FftSize == 512) updatedFrame.TrySetResult(frame);
+        };
+        await controller.StartAsync(new SourceSelection(SourceMode.Device, new OutputDeviceInfo("default", "Speakers", true), null));
+        source.PublishSamples(new float[4096], new AudioFormat(48_000, 1));
+        await initialFrame.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        api.SetAnalysisConfiguration(new AnalysisConfiguration(512, SpectrumWindow.Rectangular));
+        await Task.Delay(40);
+        source.PublishSamples(Enumerable.Repeat(1f, 512).ToArray(), new AudioFormat(48_000, 1));
+        var frame = await updatedFrame.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(512f, frame.Spectrum!.Magnitudes[0]);
+        Assert.Equal(AudioSourceState.Running, source.State);
+        Assert.Equal(1, source.StartCount);
+        Assert.Equal(0, source.StopCount);
+    }
+
+    [Fact]
     public async Task SourceChangeStopsThePreviousSourceBeforeStartingTheNext()
     {
         var first = new FakeSource();
