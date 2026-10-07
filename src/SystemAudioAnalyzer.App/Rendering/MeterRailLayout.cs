@@ -5,7 +5,8 @@ namespace SystemAudioAnalyzer.App.Rendering;
 
 public sealed record LufsScaleRange(double TopDb, double BottomDb, double StepDb);
 
-public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect LeftOverload, Rect RightOverload, Rect LeftMeter, Rect RightMeter)
+public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect LeftOverload, Rect RightOverload, Rect LeftMeter, Rect RightMeter,
+    Rect DbScale, Rect LufsMeter, Rect LufsScale, Rect ChannelLabels, Rect LufsReadout, Rect LufsCaption)
 {
     public static double CalculateFillRatio(float linearLevel, double displayRangeDb)
     {
@@ -69,15 +70,25 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
 
     public static MeterRailLayout Calculate(double width, double height)
     {
-        var half = width / 2d;
-        var leftX = 8d;
-        var rightX = half + 8d;
-        var barWidth = Math.Max(1d, half - 16d);
-        var meterTop = Math.Min(56d, height);
+        const double edge = 2d, scaleWidth = 26d, gap = 2d, lufsGap = 4d, lufsWidth = 14d, lufsScaleWidth = 22d;
+        const double rowHeight = 14d, overloadHeight = 16d, readoutHeight = 22d, bottomReserve = 54d;
+        var fixedWidth = (edge * 2) + scaleWidth + (gap * 2) + lufsGap + lufsWidth + lufsScaleWidth;
+        var barWidth = Math.Max(1d, (width - fixedWidth) / 2d);
+        var scaleX = edge;
+        var leftX = scaleX + scaleWidth + gap;
+        var rightX = leftX + barWidth + gap;
+        var lufsX = rightX + barWidth + lufsGap;
+        var meterTop = Math.Min(40d, Math.Max(0d, height));
+        var meterHeight = Math.Max(1d, height - meterTop - bottomReserve);
+        var labels = new Rect(edge, meterTop + meterHeight + 2d, Math.Max(1d, width - (edge * 2)), rowHeight);
+        var readout = new Rect(0, labels.Bottom, Math.Max(1d, width), readoutHeight);
         return new MeterRailLayout(
-            new Rect(leftX, 2, barWidth, 14), new Rect(rightX, 2, barWidth, 14),
-            new Rect(leftX, 30, barWidth, 13), new Rect(rightX, 30, barWidth, 13),
-            new Rect(leftX, meterTop, barWidth, Math.Max(1d, height - meterTop - 6)),
-            new Rect(rightX, meterTop, barWidth, Math.Max(1d, height - meterTop - 6)));
+            new Rect(leftX, 2, barWidth, rowHeight), new Rect(rightX, 2, barWidth, rowHeight),
+            new Rect(leftX, 20, barWidth, overloadHeight), new Rect(rightX, 20, barWidth, overloadHeight),
+            new Rect(leftX, meterTop, barWidth, meterHeight), new Rect(rightX, meterTop, barWidth, meterHeight),
+            new Rect(scaleX, meterTop, scaleWidth, meterHeight),
+            new Rect(lufsX, meterTop, lufsWidth, meterHeight),
+            new Rect(lufsX + lufsWidth, meterTop, lufsScaleWidth, meterHeight),
+            labels, readout, new Rect(0, readout.Bottom, Math.Max(1d, width), rowHeight));
     }
 }
