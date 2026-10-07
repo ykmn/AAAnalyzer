@@ -17,6 +17,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private AnalysisFrame? _latestFrame;
     private RtaResolution _rtaResolution = RtaResolution.OneThird;
     private RtaChannelMode _rtaChannelMode = RtaChannelMode.Mono;
+    private InstrumentTab _activeTab = InstrumentTab.Waterfall;
 
     public MainViewModel(IAnalyzerController controller, IEnumerable<OutputDeviceInfo> devices)
     {
@@ -142,6 +143,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         get => _rtaChannelMode;
         set => SetField(ref _rtaChannelMode, value);
     }
+
+    public InstrumentTab ActiveTab
+    {
+        get => _activeTab;
+        private set => SetField(ref _activeTab, value);
+    }
+
+    public void SelectTab(InstrumentTab tab) => ActiveTab = tab;
 
     public void ResetAllMeasurements()
     {

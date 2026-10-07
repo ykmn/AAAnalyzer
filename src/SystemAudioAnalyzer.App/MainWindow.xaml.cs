@@ -1,6 +1,8 @@
 using SystemAudioAnalyzer.App.Services;
 using SystemAudioAnalyzer.App.ViewModels;
 using SystemAudioAnalyzer.App.Diagnostics;
+using SystemAudioAnalyzer.App.Settings;
+using SystemAudioAnalyzer.App.Views;
 
 namespace SystemAudioAnalyzer.App;
 
@@ -8,6 +10,7 @@ public partial class MainWindow : Window
 {
     private readonly IScreenshotService _screenshotService = new ScreenshotService(AppContext.BaseDirectory);
     private readonly AppLogger _logger = new(AppContext.BaseDirectory);
+    private readonly SettingsStore _settingsStore = new();
     public MainWindow()
     {
         InitializeComponent();
@@ -57,5 +60,16 @@ public partial class MainWindow : Window
         {
             _logger.Write(exception);
         }
+    }
+
+    private void OpenSettings(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not FrameworkElement { Tag: string name } || !Enum.TryParse<InstrumentTab>(name, out var page))
+        {
+            return;
+        }
+
+        var dialog = new SettingsWindow(new SettingsDialogViewModel(_settingsStore, MeasurementSettings.Default, page)) { Owner = this };
+        dialog.ShowDialog();
     }
 }
