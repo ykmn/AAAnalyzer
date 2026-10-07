@@ -78,6 +78,20 @@ public sealed class LoudnessMeterTests
         Assert.Equal(10, meter.BufferedIntegratedBlockCount);
     }
 
+    [Fact]
+    public void IntegratedWindowApiAcceptsMaximumAndRejectsValuesAboveIt()
+    {
+        var meter = new LoudnessMeter(integratedWindowSeconds: 3_600);
+
+        Assert.Equal(3_600, meter.IntegratedWindowSeconds);
+        meter.SetIntegratedWindowSeconds(3_600);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LoudnessMeter(integratedWindowSeconds: 3_601));
+        Assert.Throws<ArgumentOutOfRangeException>(() => meter.SetIntegratedWindowSeconds(3_601));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LoudnessMeter(integratedWindowSeconds: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => meter.SetIntegratedWindowSeconds(0));
+        Assert.Equal(3_600, meter.IntegratedWindowSeconds);
+    }
+
     private static float[] CreateSineWave(int frequencyHz, int sampleRate, int frames, float amplitude)
     {
         var samples = new float[frames];

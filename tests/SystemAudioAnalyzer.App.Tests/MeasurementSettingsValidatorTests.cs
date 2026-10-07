@@ -140,6 +140,7 @@ public sealed class MeasurementSettingsValidatorTests
         AssertInvalid(settings with { Meters = settings.Meters with { ReleaseMs = double.PositiveInfinity } });
         AssertInvalid(settings with { Meters = settings.Meters with { PeakHoldMs = double.NaN } });
         AssertInvalid(settings with { Meters = settings.Meters with { IntegratedWindowSeconds = 0 } });
+        AssertInvalid(settings with { Meters = settings.Meters with { IntegratedWindowSeconds = 3_601 } });
         AssertInvalid(settings with { Meters = settings.Meters with { FontSize = (MeterFontSize)999 } });
         AssertInvalid(settings with { Meters = settings.Meters with { LufsScale = (LufsScalePreset)999 } });
         AssertInvalid(settings with { Meters = settings.Meters with { LufsMetric = (LoudnessMetric)999 } });
@@ -150,6 +151,20 @@ public sealed class MeasurementSettingsValidatorTests
         AssertInvalid(settings with { Rta = settings.Rta with { TargetRangeDb = -1 } });
         AssertInvalid(settings with { Rta = settings.Rta with { TiltDbPerOctave = double.NaN } });
         AssertInvalid(settings with { Analyzer = settings.Analyzer with { AmplitudeScale = (AnalyzerAmplitudeScale)999 } });
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(3_600, true)]
+    [InlineData(3_601, false)]
+    public void IntegratedWindowSecondsUsesBoundedSupportedRange(int seconds, bool valid)
+    {
+        var settings = MeasurementSettings.Default with
+        {
+            Meters = MeasurementSettings.Default.Meters with { IntegratedWindowSeconds = seconds },
+        };
+
+        Assert.Equal(valid, MeasurementSettingsValidator.IsValid(settings));
     }
 
     [Theory]

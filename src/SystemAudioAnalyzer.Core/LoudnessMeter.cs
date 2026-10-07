@@ -2,6 +2,8 @@ namespace SystemAudioAnalyzer.Core;
 
 public sealed class LoudnessMeter
 {
+    public const int MaxIntegratedWindowSeconds = 3_600;
+
     private readonly Queue<double> _momentaryEnergies = new();
     private readonly Queue<double> _shortTermEnergies = new();
     private readonly Queue<double> _integratedBlocks = new();
@@ -16,9 +18,9 @@ public sealed class LoudnessMeter
 
     public LoudnessMeter(int integratedWindowSeconds = 600)
     {
-        if (integratedWindowSeconds <= 0)
+        if (integratedWindowSeconds is <= 0 or > MaxIntegratedWindowSeconds)
         {
-            throw new ArgumentOutOfRangeException(nameof(integratedWindowSeconds), "Integrated window must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(integratedWindowSeconds), $"Integrated window must be between 1 and {MaxIntegratedWindowSeconds} seconds.");
         }
 
         IntegratedWindowSeconds = integratedWindowSeconds;
@@ -31,9 +33,9 @@ public sealed class LoudnessMeter
 
     public void SetIntegratedWindowSeconds(int seconds)
     {
-        if (seconds <= 0)
+        if (seconds is <= 0 or > MaxIntegratedWindowSeconds)
         {
-            throw new ArgumentOutOfRangeException(nameof(seconds), "Integrated window must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(seconds), $"Integrated window must be between 1 and {MaxIntegratedWindowSeconds} seconds.");
         }
 
         IntegratedWindowSeconds = seconds;

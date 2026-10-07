@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Windows.Media;
+using SystemAudioAnalyzer.Core;
 
 namespace SystemAudioAnalyzer.App.Settings;
 
@@ -69,7 +70,7 @@ public static class MeasurementSettingsValidator
             NonNegative(meters.AttackMs, "Meters.AttackMs");
             NonNegative(meters.ReleaseMs, "Meters.ReleaseMs");
             NonNegative(meters.PeakHoldMs, "Meters.PeakHoldMs");
-            Check(meters.IntegratedWindowSeconds > 0, "Meters.IntegratedWindowSeconds");
+            Check(meters.IntegratedWindowSeconds is >= 1 and <= LoudnessMeter.MaxIntegratedWindowSeconds, "Meters.IntegratedWindowSeconds");
             Check(Enum.IsDefined(meters.LufsMetric), "Meters.LufsMetric");
             Check(Enum.IsDefined(meters.FontSize), "Meters.FontSize");
             Check(Enum.IsDefined(meters.LufsScale), "Meters.LufsScale");
