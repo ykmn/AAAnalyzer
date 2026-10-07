@@ -11,19 +11,32 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
     private CancellationTokenSource? _frameCancellation;
     private IAudioSource? _source;
     private Task? _frameTask;
+    private readonly Action<string>? _diagnostic;
     private bool _disposed;
 
-    public AnalyzerController()
+    public AnalyzerController(Action<string>? diagnostic = null)
         : this(
             new AudioAnalysisEngine(new NaudioAudioOutputDeviceProvider(), new NaudioAudioCaptureFactory()),
-            CreateSource)
+            CreateSource,
+            diagnostic)
     {
     }
 
-    public AnalyzerController(AudioAnalysisEngine engine, Func<SourceSelection, IAudioSource> sourceFactory)
+    public AnalyzerController(AudioAnalysisEngine engine, Func<SourceSelection, IAudioSource> sourceFactory, Action<string>? diagnostic = null)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _sourceFactory = sourceFactory ?? throw new ArgumentNullException(nameof(sourceFactory));
+        _diagnostic = diagnostic;
+        if (diagnostic is not null)
+        {
+            _engine.Faulted += (_, eventArgs) => diagnostic($"Engine faulted: {eventArgs.Exception}");
+            _engine.DiagnosticPublished += (_, entry) =>
+            {
+                // Dropped buffers are reported on every frame while overloaded; the status bar already counts them.
+                if (entry.Kind != EngineDiagnosticKind.BufferDropped)
+                    diagnostic($"Engine {entry.Kind}: {entry.Message} device={entry.Device?.Name} format={entry.Format}");
+            };
+        }
     }
 
     public event EventHandler<AnalysisFrame>? FrameAvailable;
@@ -38,6 +51,7 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
         try
         {
             await StopInternalAsync().ConfigureAwait(false);
+            _diagnostic?.Invoke($"Start requested: {selection.Mode} {(selection.StreamUri?.ToString() ?? selection.Device?.Name)}");
             var source = _sourceFactory(selection);
             source.StateChanged += OnSourceStateChanged;
             _source = source;

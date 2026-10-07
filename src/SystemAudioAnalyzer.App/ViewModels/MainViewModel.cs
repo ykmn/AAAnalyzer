@@ -22,6 +22,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private MeasurementSettings _measurementSettings = MeasurementSettings.Default;
     private double _phaseGain = MeasurementSettings.Default.Phase.Gain;
     private bool _syncingFromSettings;
+    private AnalysisRunState _runState = AnalysisRunState.Stopped;
     private readonly FrameStatistics _frameStatistics = new();
     private DateTimeOffset _lastDiagnosticsUpdate = DateTimeOffset.MinValue;
     private string _diagnosticsText = string.Empty;
@@ -130,6 +131,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string ValidationMessage => SelectedSourceMode == SourceMode.Stream && !TryGetStreamUri(out _)
         ? "Введите корректный HTTP/HTTPS адрес Icecast или HLS-потока."
         : string.Empty;
+
+    /// <summary>Drives the Start/Stop button highlighting.</summary>
+    public AnalysisRunState RunState
+    {
+        get => _runState;
+        private set => SetField(ref _runState, value);
+    }
 
     /// <summary>Live frame rate, delivery delay, UI cost and dropped buffers; empty while stopped.</summary>
     public string DiagnosticsText
@@ -304,15 +312,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             StatusText = "Запуск анализа…";
+            RunState = AnalysisRunState.Starting;
             _frameStatistics.Reset();
             _lastDiagnosticsUpdate = DateTimeOffset.MinValue;
             await _controller.StartAsync(selection);
             IsAnalyzing = true;
+            if (RunState is AnalysisRunState.Starting) RunState = AnalysisRunState.Running;
             StatusText = "Анализ выполняется.";
         }
         catch (Exception exception)
         {
             IsAnalyzing = false;
+            RunState = AnalysisRunState.Faulted;
             StatusText = $"Не удалось запустить анализ: {exception.Message}";
         }
     }
@@ -322,6 +333,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             await _controller.StopAsync();
+            RunState = AnalysisRunState.Stopped;
             StatusText = "Анализ остановлен.";
             DiagnosticsText = string.Empty;
         }
@@ -351,14 +363,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
         });
 
     private void OnSourceStateChanged(object? sender, AudioSourceStateChangedEventArgs eventArgs) =>
-        RunOnUi(() => StatusText = eventArgs.State switch
+        RunOnUi(() =>
+        {
+            RunState = eventArgs.State switch
+            {
+                AudioSourceState.Connecting or AudioSourceState.Buffering => AnalysisRunState.Starting,
+                AudioSourceState.Running => AnalysisRunState.Running,
+                AudioSourceState.Faulted => AnalysisRunState.Faulted,
+                _ => AnalysisRunState.Stopped,
+            };
+            ApplySourceStatus(eventArgs.State);
+        });
+
+    private void ApplySourceStatus(AudioSourceState state) => StatusText = state switch
         {
             AudioSourceState.Connecting => "Подключение к источнику…",
             AudioSourceState.Buffering => "Буферизация потока…",
             AudioSourceState.Running => "Анализ выполняется.",
             AudioSourceState.Faulted => "Ошибка источника. Можно повторить запуск.",
             _ => "Анализ остановлен.",
-        });
+        };
 
     private void RunOnUi(Action action)
     {

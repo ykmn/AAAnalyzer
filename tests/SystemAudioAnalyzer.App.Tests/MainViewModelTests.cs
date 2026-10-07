@@ -216,6 +216,38 @@ public sealed class MainViewModelTests
         Assert.Equal(RtaResolution.One, viewModel.RtaResolution);
     }
 
+    [Fact]
+    public async Task RunStateFollowsStartAndStop()
+    {
+        var viewModel = new MainViewModel(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
+        Assert.Equal(AnalysisRunState.Stopped, viewModel.RunState);
+
+        await viewModel.StartCommand.ExecuteAsync();
+        Assert.Equal(AnalysisRunState.Running, viewModel.RunState);
+
+        await viewModel.StopCommand.ExecuteAsync();
+        Assert.Equal(AnalysisRunState.Stopped, viewModel.RunState);
+    }
+
+    [Theory]
+    [InlineData(AudioSourceState.Connecting, AnalysisRunState.Starting)]
+    [InlineData(AudioSourceState.Buffering, AnalysisRunState.Starting)]
+    [InlineData(AudioSourceState.Running, AnalysisRunState.Running)]
+    [InlineData(AudioSourceState.Faulted, AnalysisRunState.Faulted)]
+    [InlineData(AudioSourceState.Stopped, AnalysisRunState.Stopped)]
+    public void SourceStateEventsDriveTheRunState(AudioSourceState state, AnalysisRunState expected)
+    {
+        var controller = new FakeAnalyzerController();
+        var viewModel = new MainViewModel(controller, [new OutputDeviceInfo("default", "Speakers", true)]);
+        var changed = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+        controller.PublishState(state);
+
+        Assert.Equal(expected, viewModel.RunState);
+        if (expected != AnalysisRunState.Stopped) Assert.Contains(nameof(MainViewModel.RunState), changed);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 

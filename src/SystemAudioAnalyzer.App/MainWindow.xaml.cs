@@ -19,7 +19,11 @@ public partial class MainWindow : Window
         _settingsStore = new SettingsStore(diagnostic: _logger.Write);
         var provider = new NaudioAudioOutputDeviceProvider();
         _toolbarPersister = new ToolbarSettingsPersister(_settingsStore, _logger.Write);
-        var mainViewModel = new MainViewModel(new AnalyzerController(), provider.GetActiveDevices());
+        var mainViewModel = new MainViewModel(new AnalyzerController(_logger.Write), provider.GetActiveDevices());
+        mainViewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.StatusText)) _logger.Write($"Status: {mainViewModel.StatusText}");
+        };
         mainViewModel.ToolbarSettingsChanged += async (_, args) => await _toolbarPersister.PersistAsync(args.Settings);
         DataContext = mainViewModel;
         Loaded += LoadSettingsAsync;

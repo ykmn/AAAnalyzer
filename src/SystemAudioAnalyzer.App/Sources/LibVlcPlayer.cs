@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using LibVLCSharp.Shared;
 
 namespace SystemAudioAnalyzer.App.Sources;
@@ -30,7 +29,7 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVlc);
         _mediaPlayer.Buffering += OnBuffering;
         _mediaPlayer.EncounteredError += OnEncounteredError;
-        _mediaPlayer.SetAudioFormat("f32l", SampleRate, Channels);
+        _mediaPlayer.SetAudioFormat("S16N", SampleRate, Channels);
         _mediaPlayer.SetAudioCallbacks(OnAudioPlay, null, null, null, null);
         _media = new Media(_libVlc, streamUri);
 
@@ -64,8 +63,7 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
     {
         try
         {
-            var pcm = new float[checked((int)(count * Channels))];
-            Marshal.Copy(samples, pcm, 0, pcm.Length);
+            var pcm = LibVlcPcm.ReadInterleavedS16(samples, checked((int)count), (int)Channels);
             PcmReceived?.Invoke(this, new LibVlcPcmEventArgs(pcm, new AudioFormat((int)SampleRate, (int)Channels)));
         }
         catch (Exception exception)
