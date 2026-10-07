@@ -16,4 +16,8 @@
     <PackageReference Include="LibVLCSharp.WPF" Version="3.10.1" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
   </ItemGroup>
+  <Target Name="CreateAppDataDirectory" AfterTargets="Build;Publish">
+    <MakeDir Directories="$(OutDir)Data" Condition="'$(OutDir)' != ''" />
+    <MakeDir Directories="$(PublishDir)Data" Condition="'$(PublishDir)' != ''" />
+  </Target>
 </Project>

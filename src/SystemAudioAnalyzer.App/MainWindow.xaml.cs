@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel viewModel)
         {
-            viewModel.MeasurementSettings = await _settingsStore.LoadAsync();
+            viewModel.MeasurementSettings = await _settingsStore.LoadStartupSettingsAsync();
         }
     }
 

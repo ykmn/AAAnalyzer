@@ -80,7 +80,7 @@
 - Create: `src/SystemAudioAnalyzer.App/Settings/SettingsProfile.cs`
 - Create: `src/SystemAudioAnalyzer.App/Settings/SettingsProfileCatalog.cs`
 - Modify: `src/SystemAudioAnalyzer.App/Settings/SettingsStore.cs`
-- Modify: `src/SystemAudioAnalyzer.App/App.xaml.cs`
+- Modify: `src/SystemAudioAnalyzer.App/MainWindow.xaml.cs`
 - Modify: `src/SystemAudioAnalyzer.App/SystemAudioAnalyzer.App.csproj`
 - Modify: `tests/SystemAudioAnalyzer.App.Tests/SettingsStoreTests.cs`
 - Create: `tests/SystemAudioAnalyzer.App.Tests/SettingsProfileCatalogTests.cs`
@@ -88,14 +88,14 @@
 
 **Interfaces:**
 - `SettingsProfile(string Id, string Name, MeasurementSettings Settings)` and `SettingsProfileCatalog(int SchemaVersion, string DefaultProfileId, IReadOnlyList<SettingsProfile> Profiles)` are immutable.
-- `SettingsStore(string? dataDirectory = null, Action<string>? diagnostic = null)` defaults to `Path.Combine(AppContext.BaseDirectory, "Data")` and exposes `LoadCatalogAsync`, `SaveCatalogAsync`, and `LoadStartupSettingsAsync`.
+- `SettingsStore(string? settingsDirectory = null, Action<string>? diagnostic = null)` keeps the existing parameter name for source compatibility, defaults to `Path.Combine(AppContext.BaseDirectory, "Data")`, and exposes `LoadCatalogAsync`, `SaveCatalogAsync`, and `LoadStartupSettingsAsync`.
 - Catalog mutation helpers are pure: `SaveProfile`, `SaveAsProfile`, `DeleteProfile`, and `SetDefaultProfile` return a validated new catalog.
 
 - [ ] **Step 1: Write failing tests** for Default startup selection, profile save/save-as/delete/default, refusing to delete Default, atomic temp-file writes, invalid catalog fallback, one-time field-by-field migration from the old LocalAppData `settings.json` without deleting it, and a failed write that leaves the previous catalog readable.
 - [ ] **Step 2: Run** `dotnet test tests/SystemAudioAnalyzer.App.Tests --filter FullyQualifiedName~SettingsProfileCatalogTests` **and verify failure before implementation.**
 - [ ] **Step 3: Implement profile records and pure catalog operations**; reject duplicate IDs/names and any invalid settings snapshot.
 - [ ] **Step 4: Implement versioned JSON storage under `Data/profiles.json`** using temp-file plus replace; on read/validation failure log and load built-in Default. Import legacy settings only when no catalog exists and leave the source file untouched.
-- [ ] **Step 5: Wire startup to load the Default profile** and configure app data publishing so `Data` is available beside the executable without relocating logs/screenshots.
+- [ ] **Step 5: Wire `MainWindow` startup to load the Default profile** and configure app data publishing so `Data` is available beside the executable without relocating logs/screenshots; keep logging and screenshots at their existing base-directory paths.
 - [ ] **Step 6: Run** `dotnet test tests/SystemAudioAnalyzer.App.Tests --filter "FullyQualifiedName~SettingsProfileCatalogTests|FullyQualifiedName~SettingsStoreTests|FullyQualifiedName~PortableBuildTests"`; verify PASS and that the legacy fixture remains present.
 - [ ] **Step 7: Commit** as `feat: persist shared measurement profiles`.
 
@@ -161,6 +161,7 @@
 - Modify: `src/SystemAudioAnalyzer.App/Views/SettingsWindow.xaml`
 - Modify: `src/SystemAudioAnalyzer.App/Views/SettingsWindow.xaml.cs`
 - Modify: `src/SystemAudioAnalyzer.App/SystemAudioAnalyzer.App.csproj`
+- Modify: `README.md`
 - Modify: `tests/SystemAudioAnalyzer.App.Tests/SettingsEditSessionTests.cs`
 - Modify: `tests/SystemAudioAnalyzer.App.Tests/SettingsStoreTests.cs`
 - Create: `tests/SystemAudioAnalyzer.App.Tests/SettingsDialogViewModelTests.cs`
@@ -173,7 +174,7 @@
 - [ ] **Step 2: Run** `dotnet test tests/SystemAudioAnalyzer.App.Tests --filter FullyQualifiedName~SettingsDialogViewModelTests`; verify they fail before dialog workflow implementation.
 - [ ] **Step 3: Implement transactional draft state** and profile operations; require explicit confirmation before discarding a dirty draft and preserve the runtime snapshot from dialog opening on Cancel.
 - [ ] **Step 4: Add a standard Windows color chooser** (Windows Forms `ColorDialog`; enable WPF/WinForms interop only in App) and bind it to color and gradient swatch actions.
-- [ ] **Step 5: Rebuild the SettingsWindow to match reference pages** including common preset header, Analyzer/Waterfall/Meters/Loudness/RTA/Phase pages, dB stop list, Add/Delete/Color buttons, Apply/Save/Save As/Default/Delete/OK/Cancel behavior, and validation feedback.
+- [ ] **Step 5: Rebuild the SettingsWindow to match reference pages** including common preset header, Analyzer/Waterfall/Meters/Loudness/RTA/Phase pages, dB stop list, Add/Delete/Color buttons, Apply/Save/Save As/Default/Delete/OK/Cancel behavior, and validation feedback. Update README settings documentation to describe app-local profile storage, legacy migration, and final Apply/Save semantics.
 - [ ] **Step 6: Run** `dotnet test tests/SystemAudioAnalyzer.App.Tests --filter "FullyQualifiedName~SettingsDialogViewModelTests|FullyQualifiedName~SettingsEditSessionTests|FullyQualifiedName~SettingsStoreTests"`; verify PASS.
 - [ ] **Step 7: Commit** as `feat: implement settings profiles dialog`.
 

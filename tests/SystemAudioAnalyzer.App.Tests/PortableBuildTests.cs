@@ -1,9 +1,40 @@
 using System.Text.RegularExpressions;
+using System.Diagnostics;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
 public sealed class PortableBuildTests
 {
+    [Fact]
+    public void SettingsStoreDefaultsToExecutableDataDirectory()
+    {
+        var store = new SettingsStore(settingsDirectory: null);
+        Assert.Equal(Path.Combine(AppContext.BaseDirectory, "Data", "profiles.json"), store.CatalogPath);
+        Assert.Equal(Path.Combine(AppContext.BaseDirectory, "Data", "settings.json"), store.SettingsPath);
+    }
+
+    [Fact]
+    public async Task BuildAndPublishCreateAppLocalDataDirectories()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "AAAnalyzerTests", Guid.NewGuid().ToString("N"));
+        var output = Path.Combine(directory, "build");
+        var publish = Path.Combine(directory, "publish");
+        var start = new ProcessStartInfo("dotnet") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        start.ArgumentList.Add("msbuild");
+        start.ArgumentList.Add(Path.Combine(FindRepositoryRoot(), "src", "SystemAudioAnalyzer.App", "SystemAudioAnalyzer.App.csproj"));
+        start.ArgumentList.Add("-target:CreateAppDataDirectory");
+        start.ArgumentList.Add("-property:OutDir=" + output + Path.DirectorySeparatorChar);
+        start.ArgumentList.Add("-property:PublishDir=" + publish + Path.DirectorySeparatorChar);
+        using var process = Process.Start(start)!;
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        Assert.True(process.ExitCode == 0, await stdout + await stderr);
+        Assert.True(Directory.Exists(Path.Combine(output, "Data")));
+        Assert.True(Directory.Exists(Path.Combine(publish, "Data")));
+    }
+
     [Fact]
     public void PortableBuildLocaleFilterRecognizesScriptAndRegionTags()
     {
