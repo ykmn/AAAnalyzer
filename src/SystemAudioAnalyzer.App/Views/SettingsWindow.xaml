@@ -12,9 +12,9 @@
             </DockPanel>
             <DockPanel Margin="0,0,0,4">
                 <TextBlock Text="Save as:" Width="76" VerticalAlignment="Center"/>
+                <Button Content="Delete" Click="DeleteProfile" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="8,2"/>
+                <Button Content="Save" Click="SaveProfile" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="8,2"/>
                 <TextBox Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Content="Save" Click="SaveProfile" Margin="6,0,0,0" Padding="12,2"/>
-                <Button Content="Delete" Click="DeleteProfile" Margin="6,0,0,0" Padding="12,2"/>
             </DockPanel>
             <Button Content="Make selected preset the default for new panels" Click="SetDefault" HorizontalContentAlignment="Center"/>
         </StackPanel>
@@ -103,13 +103,13 @@
         </TabControl>
 
         <TextBlock x:Name="SaveError" Grid.Row="2" Foreground="#B00020" TextWrapping="Wrap" Margin="4,8,4,0"/>
-        <DockPanel Grid.Row="3" Margin="2,10,2,0">
-            <TextBlock Text="© 2026 Spectrum Tool DSP 3 · Inspired by Winamp DSP Spectrum Tool" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+        <StackPanel Grid.Row="3" Margin="2,10,2,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Apply" Click="Apply" MinWidth="74" Margin="4,0"/>
                 <Button Content="OK" Click="Accept" MinWidth="74" Margin="4,0"/>
                 <Button Content="Cancel" Click="Cancel" MinWidth="74" Margin="4,0"/>
             </StackPanel>
-        </DockPanel>
+            <TextBlock Text="© 2026 Spectrum Tool DSP 3 · Inspired by Winamp DSP Spectrum Tool" Foreground="#555" FontSize="9" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        </StackPanel>
     </Grid>
 </Window>
