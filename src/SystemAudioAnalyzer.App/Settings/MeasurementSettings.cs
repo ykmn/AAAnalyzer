@@ -1,14 +1,15 @@
 using SystemAudioAnalyzer.App.ViewModels;
+using System.Text.Json.Serialization;
 
 namespace SystemAudioAnalyzer.App.Settings;
 
 public sealed record MeasurementSettings(
-    AnalyzerSettings Analyzer,
-    WaterfallSettings Waterfall,
-    MeterSettings Meters,
-    LoudnessDisplaySettings Loudness,
-    RtaDisplaySettings Rta,
-    PhaseDisplaySettings Phase)
+    [property: JsonRequired] AnalyzerSettings Analyzer,
+    [property: JsonRequired] WaterfallSettings Waterfall,
+    [property: JsonRequired] MeterSettings Meters,
+    [property: JsonRequired] LoudnessDisplaySettings Loudness,
+    [property: JsonRequired] RtaDisplaySettings Rta,
+    [property: JsonRequired] PhaseDisplaySettings Phase)
 {
     public static MeasurementSettings Default { get; } = new(
         new AnalyzerSettings(-120, "#FFFFFF", "#D1D5DB"),
@@ -19,17 +20,17 @@ public sealed record MeasurementSettings(
         new PhaseDisplaySettings(1));
 }
 
-public sealed record AnalyzerSettings(double DisplayFloorDb, string CursorColor, string TextColor);
+public sealed record AnalyzerSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] string CursorColor, [property: JsonRequired] string TextColor);
 
-public sealed record WaterfallSettings(double DisplayFloorDb, double DisplayOffsetDb, string PaletteColor);
+public sealed record WaterfallSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] double DisplayOffsetDb, [property: JsonRequired] string PaletteColor);
 
-public sealed record MeterSettings(double DisplayRangeDb, string MeterColor, string OverloadColor);
+public sealed record MeterSettings([property: JsonRequired] double DisplayRangeDb, [property: JsonRequired] string MeterColor, [property: JsonRequired] string OverloadColor);
 
-public sealed record LoudnessDisplaySettings(int HistorySeconds, LoudnessMetric Metric, bool AutoScale, double SpanLufs, double CentreLufs);
+public sealed record LoudnessDisplaySettings([property: JsonRequired] int HistorySeconds, [property: JsonRequired] LoudnessMetric Metric, [property: JsonRequired] bool AutoScale, [property: JsonRequired] double SpanLufs, [property: JsonRequired] double CentreLufs);
 
-public sealed record RtaDisplaySettings(RtaChannelMode Source, RtaResolution Resolution, double ScaleTopDb, double ScaleRangeDb, double TargetLineDb);
+public sealed record RtaDisplaySettings([property: JsonRequired] RtaChannelMode Source, [property: JsonRequired] RtaResolution Resolution, [property: JsonRequired] double ScaleTopDb, [property: JsonRequired] double ScaleRangeDb, [property: JsonRequired] double TargetLineDb);
 
-public sealed record PhaseDisplaySettings(double Gain);
+public sealed record PhaseDisplaySettings([property: JsonRequired] double Gain);
 
 public enum LoudnessMetric
 {

@@ -72,6 +72,7 @@ public sealed class WaterfallView : FrameworkElement
     private void DrawRows(DrawingContext context, IReadOnlyList<WaterfallRow> rows, Rect bounds, bool left, DateTimeOffset now)
     {
         if (rows.Count == 0) return;
+        var displayFloor = SpectrumDisplayScale.EffectiveFloor(Settings.Analyzer.DisplayFloorDb, Settings.Waterfall.DisplayFloorDb);
         for (var row = 0; row < rows.Count; row++)
         {
             var ageSeconds = Math.Clamp((now - rows[row].Timestamp).TotalSeconds, 0, 10);
@@ -86,8 +87,8 @@ public sealed class WaterfallView : FrameworkElement
                 var lastBin = Math.Min(values.Count - 1, (int)Math.Ceiling(upperHertz * rows[row].FftSize / rows[row].SampleRate));
                 var magnitude = 0f;
                 for (var bin = firstBin; bin <= lastBin; bin++) magnitude = Math.Max(magnitude, values[bin]);
-                var db = values.Count == 0 ? Settings.Waterfall.DisplayFloorDb : 20 * Math.Log10(Math.Max(magnitude, 0.000001f)) + Settings.Waterfall.DisplayOffsetDb;
-                var intensity = Math.Clamp((db - Settings.Waterfall.DisplayFloorDb) / Math.Max(1, 0 - Settings.Waterfall.DisplayFloorDb), 0, 1);
+                var db = values.Count == 0 ? displayFloor : 20 * Math.Log10(Math.Max(magnitude, 0.000001f)) + Settings.Waterfall.DisplayOffsetDb;
+                var intensity = Math.Clamp((db - displayFloor) / Math.Max(1, 0 - displayFloor), 0, 1);
                 var baseColor = (Color)ColorConverter.ConvertFromString(Settings.Waterfall.PaletteColor);
                 var brush = new SolidColorBrush(Color.FromRgb((byte)(baseColor.R * intensity), (byte)(baseColor.G * intensity), (byte)(baseColor.B * intensity)));
                 brush.Freeze();

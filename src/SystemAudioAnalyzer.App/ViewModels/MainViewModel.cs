@@ -165,8 +165,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RtaChannelMode RtaChannelMode
     {
         get => _rtaChannelMode;
-        set => SetField(ref _rtaChannelMode, value);
+        set
+        {
+            if (SetField(ref _rtaChannelMode, value))
+            {
+                OnPropertyChanged(nameof(IsRtaMono));
+                OnPropertyChanged(nameof(IsRtaLeft));
+                OnPropertyChanged(nameof(IsRtaRight));
+            }
+        }
     }
+
+    public bool IsRtaMono { get => RtaChannelMode == RtaChannelMode.Mono; set { if (value) RtaChannelMode = RtaChannelMode.Mono; } }
+
+    public bool IsRtaLeft { get => RtaChannelMode == RtaChannelMode.Left; set { if (value) RtaChannelMode = RtaChannelMode.Left; } }
+
+    public bool IsRtaRight { get => RtaChannelMode == RtaChannelMode.Right; set { if (value) RtaChannelMode = RtaChannelMode.Right; } }
 
     public InstrumentTab ActiveTab
     {

@@ -1,5 +1,7 @@
 using SystemAudioAnalyzer.App.Settings;
 using SystemAudioAnalyzer.App.ViewModels;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
@@ -73,6 +75,22 @@ public sealed class SettingsStoreTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => store.SaveAsync(invalid));
         Assert.False(File.Exists(store.SettingsPath));
+    }
+
+    [Fact]
+    public async Task MissingNestedSettingReturnsDefaultsAndReportsFallback()
+    {
+        var directory = CreateSettingsDirectory();
+        var diagnostics = new List<string>();
+        var store = new SettingsStore(directory, diagnostics.Add);
+        var json = JsonNode.Parse(JsonSerializer.Serialize(MeasurementSettings.Default))!;
+        json["Analyzer"]!.AsObject().Remove(nameof(AnalyzerSettings.DisplayFloorDb));
+        await File.WriteAllTextAsync(store.SettingsPath, json.ToJsonString());
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal(MeasurementSettings.Default, loaded);
+        Assert.Single(diagnostics);
     }
 
     private static string CreateSettingsDirectory()

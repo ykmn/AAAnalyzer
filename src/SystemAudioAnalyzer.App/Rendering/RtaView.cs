@@ -27,7 +27,8 @@ public sealed class RtaView : FrameworkElement
             var y = step * ActualHeight / 8d;
             context.DrawLine(new Pen(Brushes.DimGray, 0.5), new Point(0, y), new Point(ActualWidth, y));
         }
-        var range = Math.Max(1, Settings.Rta.ScaleRangeDb);
+        var displayFloor = SpectrumDisplayScale.EffectiveFloor(Settings.Analyzer.DisplayFloorDb, Settings.Rta.ScaleTopDb - Settings.Rta.ScaleRangeDb);
+        var range = Math.Max(1, Settings.Rta.ScaleTopDb - displayFloor);
         var targetY = ActualHeight * Math.Clamp((Settings.Rta.ScaleTopDb - Settings.Rta.TargetLineDb) / range, 0, 1);
         context.DrawLine(new Pen(Brushes.IndianRed, 1), new Point(0, targetY), new Point(ActualWidth, targetY));
         var bands = RtaBandAggregator.Aggregate(spectrum, Resolution);
@@ -35,7 +36,7 @@ public sealed class RtaView : FrameworkElement
         for (var index = 0; index < bands.Count; index++)
         {
             var db = 20 * Math.Log10(Math.Max(bands[index].Magnitude, 0.000001f));
-            var height = Math.Clamp((db - (Settings.Rta.ScaleTopDb - range)) / range, 0, 1) * ActualHeight;
+            var height = Math.Clamp((db - displayFloor) / range, 0, 1) * ActualHeight;
             context.DrawRectangle(Brushes.DodgerBlue, null, new Rect(index * width + 1, ActualHeight - height, Math.Max(1, width - 2), height));
         }
     }

@@ -82,6 +82,8 @@ public sealed class MainViewModelTests
 
         Assert.Equal(RtaResolution.OneTwelfth, viewModel.RtaResolution);
         Assert.Equal(RtaChannelMode.Right, viewModel.RtaChannelMode);
+        Assert.True(viewModel.IsRtaRight);
+        Assert.False(viewModel.IsRtaMono);
         Assert.False(viewModel.IsAnalyzing);
     }
 
@@ -110,6 +112,8 @@ public sealed class MainViewModelTests
 
         Assert.Equal(RtaResolution.OneTwelfth, viewModel.RtaResolution);
         Assert.Equal(RtaChannelMode.Right, viewModel.RtaChannelMode);
+        Assert.True(viewModel.IsRtaRight);
+        Assert.False(viewModel.IsRtaMono);
     }
 
     private static MainViewModel CreateViewModel() =>
