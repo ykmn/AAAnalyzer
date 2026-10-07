@@ -1,3 +1,4 @@
+using SystemAudioAnalyzer.App.ViewModels;
 using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Tests;
@@ -73,5 +74,33 @@ public sealed class ToolbarSettingsActionsTests
         Assert.Equal(-35, ToolbarSettingsActions.WithRtaTarget(Defaults, 1).Rta.TargetLineDb);
         Assert.Equal(0, ToolbarSettingsActions.WithRtaTarget(Defaults, 500).Rta.TargetLineDb);
         Assert.Equal(-60, ToolbarSettingsActions.WithRtaTarget(Defaults, -500).Rta.TargetLineDb);
+    }
+
+    [Fact]
+    public void CopyToolbarFieldsTransfersOnlyTheFieldsOwnedByTheToolbars()
+    {
+        var runtime = Defaults with
+        {
+            Rta = Defaults.Rta with { Source = RtaChannelMode.Left, Resolution = RtaResolution.OneSixth, AveragingCount = 80, TargetLineDb = -30, TiltDbPerOctave = 3 },
+            Loudness = Defaults.Loudness with { Metric = LoudnessMetric.Momentary, HistorySeconds = 600, AutoScale = false, SpanLufs = 12, CentreLufs = -20 },
+            Meters = Defaults.Meters with { IntegratedWindowSeconds = 1_800, AttackMs = 99 },
+            Analyzer = Defaults.Analyzer with { Gain = 2 },
+        };
+
+        var profile = ToolbarSettingsActions.CopyToolbarFields(Defaults, runtime);
+
+        Assert.Equal(RtaChannelMode.Left, profile.Rta.Source);
+        Assert.Equal(RtaResolution.OneSixth, profile.Rta.Resolution);
+        Assert.Equal(80, profile.Rta.AveragingCount);
+        Assert.Equal(-30, profile.Rta.TargetLineDb);
+        Assert.Equal(LoudnessMetric.Momentary, profile.Loudness.Metric);
+        Assert.Equal(600, profile.Loudness.HistorySeconds);
+        Assert.False(profile.Loudness.AutoScale);
+        Assert.Equal(12, profile.Loudness.SpanLufs);
+        Assert.Equal(-20, profile.Loudness.CentreLufs);
+        Assert.Equal(1_800, profile.Meters.IntegratedWindowSeconds);
+        Assert.Equal(Defaults.Rta.TiltDbPerOctave, profile.Rta.TiltDbPerOctave);
+        Assert.Equal(Defaults.Meters.AttackMs, profile.Meters.AttackMs);
+        Assert.Equal(Defaults.Analyzer, profile.Analyzer);
     }
 }

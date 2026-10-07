@@ -21,6 +21,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private InstrumentTab _activeTab = InstrumentTab.Waterfall;
     private MeasurementSettings _measurementSettings = MeasurementSettings.Default;
     private double _phaseGain = MeasurementSettings.Default.Phase.Gain;
+    private bool _syncingFromSettings;
 
     public MainViewModel(IAnalyzerController controller, IEnumerable<OutputDeviceInfo> devices)
     {
@@ -36,6 +37,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>Raised when a toolbar button (not the settings dialog or startup load) changed the settings.</summary>
+    public event EventHandler<ToolbarSettingsChangedEventArgs>? ToolbarSettingsChanged;
 
     public ReadOnlyCollection<OutputDeviceInfo> Devices { get; }
 
@@ -160,7 +164,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RtaResolution RtaResolution
     {
         get => _rtaResolution;
-        set => SetField(ref _rtaResolution, value);
+        set
+        {
+            if (SetField(ref _rtaResolution, value) && !_syncingFromSettings)
+                ApplyToolbarChange(settings => settings with { Rta = settings.Rta with { Resolution = value } });
+        }
     }
 
     public RtaChannelMode RtaChannelMode
@@ -173,6 +181,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsRtaMono));
                 OnPropertyChanged(nameof(IsRtaLeft));
                 OnPropertyChanged(nameof(IsRtaRight));
+                if (!_syncingFromSettings)
+                    ApplyToolbarChange(settings => settings with { Rta = settings.Rta with { Source = value } });
             }
         }
     }
@@ -198,8 +208,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (SetField(ref _measurementSettings, value))
             {
                 ApplyEngineSettings(value);
-                RtaResolution = value.Rta.Resolution;
-                RtaChannelMode = value.Rta.Source;
+                _syncingFromSettings = true;
+                try
+                {
+                    RtaResolution = value.Rta.Resolution;
+                    RtaChannelMode = value.Rta.Source;
+                }
+                finally
+                {
+                    _syncingFromSettings = false;
+                }
+
                 PhaseGain = value.Phase.Gain;
                 OnPropertyChanged(nameof(CurrentLoudnessText));
                 OnPropertyChanged(nameof(LoudnessMetric));
@@ -214,13 +233,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public LoudnessMetric LoudnessMetric
     {
         get => MeasurementSettings.Loudness.Metric;
-        set { if (value != LoudnessMetric) MeasurementSettings = ToolbarSettingsActions.WithLoudnessMetric(MeasurementSettings, value); }
+        set { if (value != LoudnessMetric) ApplyToolbarChange(settings => ToolbarSettingsActions.WithLoudnessMetric(settings, value)); }
     }
 
     public int LoudnessWindowSeconds
     {
         get => MeasurementSettings.Loudness.HistorySeconds;
-        set { if (value != LoudnessWindowSeconds) MeasurementSettings = ToolbarSettingsActions.WithLoudnessWindow(MeasurementSettings, value); }
+        set { if (value != LoudnessWindowSeconds) ApplyToolbarChange(settings => ToolbarSettingsActions.WithLoudnessWindow(settings, value)); }
     }
 
     public string LoudnessScaleText => ToolbarSettingsActions.LoudnessScaleText(MeasurementSettings);
@@ -229,15 +248,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string RtaTargetText => $"Tgt {MeasurementSettings.Rta.TargetLineDb:0}";
 
-    public void ZoomLoudness(double factor) => MeasurementSettings = ToolbarSettingsActions.ZoomLoudness(MeasurementSettings, factor);
+    public void ZoomLoudness(double factor) => ApplyToolbarChange(settings => ToolbarSettingsActions.ZoomLoudness(settings, factor));
 
-    public void ShiftLoudness(double deltaLufs) => MeasurementSettings = ToolbarSettingsActions.ShiftLoudness(MeasurementSettings, deltaLufs);
+    public void ShiftLoudness(double deltaLufs) => ApplyToolbarChange(settings => ToolbarSettingsActions.ShiftLoudness(settings, deltaLufs));
 
-    public void CycleRollingWindow() => MeasurementSettings = ToolbarSettingsActions.CycleRollingWindow(MeasurementSettings);
+    public void CycleRollingWindow() => ApplyToolbarChange(ToolbarSettingsActions.CycleRollingWindow);
 
-    public void AdjustRtaAveraging(int delta) => MeasurementSettings = ToolbarSettingsActions.WithRtaAveraging(MeasurementSettings, delta);
+    public void AdjustRtaAveraging(int delta) => ApplyToolbarChange(settings => ToolbarSettingsActions.WithRtaAveraging(settings, delta));
 
-    public void AdjustRtaTarget(double deltaDb) => MeasurementSettings = ToolbarSettingsActions.WithRtaTarget(MeasurementSettings, deltaDb);
+    public void AdjustRtaTarget(double deltaDb) => ApplyToolbarChange(settings => ToolbarSettingsActions.WithRtaTarget(settings, deltaDb));
+
+    private void ApplyToolbarChange(Func<MeasurementSettings, MeasurementSettings> change)
+    {
+        MeasurementSettings = change(MeasurementSettings);
+        ToolbarSettingsChanged?.Invoke(this, new ToolbarSettingsChangedEventArgs(MeasurementSettings));
+    }
 
     public double PhaseGain
     {

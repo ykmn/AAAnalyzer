@@ -169,6 +169,53 @@ public sealed class MainViewModelTests
         Assert.Contains(nameof(MainViewModel.LoudnessScaleText), changed);
     }
 
+    [Fact]
+    public void ToolbarChangesRaiseAnEventWithTheResultingSettings()
+    {
+        var viewModel = CreateViewModel();
+        var raised = new List<MeasurementSettings>();
+        viewModel.ToolbarSettingsChanged += (_, args) => raised.Add(args.Settings);
+
+        viewModel.AdjustRtaTarget(1);
+        viewModel.AdjustRtaAveraging(10);
+
+        Assert.Equal(2, raised.Count);
+        Assert.Equal(-35, raised[0].Rta.TargetLineDb);
+        Assert.Equal(60, raised[1].Rta.AveragingCount);
+        Assert.Equal(raised[1], viewModel.MeasurementSettings);
+    }
+
+    [Fact]
+    public void RtaResolutionAndSourceButtonsUpdateSettingsAndRaiseTheEvent()
+    {
+        var viewModel = CreateViewModel();
+        var raised = new List<MeasurementSettings>();
+        viewModel.ToolbarSettingsChanged += (_, args) => raised.Add(args.Settings);
+
+        viewModel.RtaResolution = RtaResolution.OneSixth;
+        viewModel.IsRtaLeft = true;
+
+        Assert.Equal(RtaResolution.OneSixth, viewModel.MeasurementSettings.Rta.Resolution);
+        Assert.Equal(RtaChannelMode.Left, viewModel.MeasurementSettings.Rta.Source);
+        Assert.Equal(2, raised.Count);
+    }
+
+    [Fact]
+    public void LoadingOrApplyingSettingsDoesNotRaiseTheToolbarEvent()
+    {
+        var viewModel = CreateViewModel();
+        var raised = 0;
+        viewModel.ToolbarSettingsChanged += (_, _) => raised++;
+
+        viewModel.MeasurementSettings = MeasurementSettings.Default with
+        {
+            Rta = MeasurementSettings.Default.Rta with { Resolution = RtaResolution.One, Source = RtaChannelMode.Right },
+        };
+
+        Assert.Equal(0, raised);
+        Assert.Equal(RtaResolution.One, viewModel.RtaResolution);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 

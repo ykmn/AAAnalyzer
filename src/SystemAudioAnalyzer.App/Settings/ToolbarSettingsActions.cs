@@ -47,4 +47,25 @@ public static class ToolbarSettingsActions
         var target = Math.Clamp(rta.TargetLineDb + deltaDb, rta.ScaleTopDb - rta.ScaleRangeDb, rta.ScaleTopDb);
         return settings with { Rta = rta with { TargetLineDb = target } };
     }
+
+    /// <summary>Copies the values the Loudness/RTA toolbars can change from <paramref name="source"/> into <paramref name="target"/>.</summary>
+    public static MeasurementSettings CopyToolbarFields(MeasurementSettings target, MeasurementSettings source) => target with
+    {
+        Rta = target.Rta with
+        {
+            Source = source.Rta.Source,
+            Resolution = source.Rta.Resolution,
+            AveragingCount = source.Rta.AveragingCount,
+            TargetLineDb = source.Rta.TargetLineDb,
+        },
+        Loudness = target.Loudness with
+        {
+            Metric = source.Loudness.Metric,
+            HistorySeconds = source.Loudness.HistorySeconds,
+            AutoScale = source.Loudness.AutoScale,
+            SpanLufs = source.Loudness.SpanLufs,
+            CentreLufs = source.Loudness.CentreLufs,
+        },
+        Meters = target.Meters with { IntegratedWindowSeconds = source.Meters.IntegratedWindowSeconds },
+    };
 }

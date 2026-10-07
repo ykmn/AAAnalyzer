@@ -11,13 +11,17 @@ public partial class MainWindow : Window
     private readonly IScreenshotService _screenshotService = new ScreenshotService(AppContext.BaseDirectory);
     private readonly AppLogger _logger = new(AppContext.BaseDirectory);
     private readonly SettingsStore _settingsStore;
+    private readonly ToolbarSettingsPersister _toolbarPersister;
     public MainWindow()
     {
         InitializeComponent();
         MeterRail.ResetRequested += ResetMeterRailValue;
         _settingsStore = new SettingsStore(diagnostic: _logger.Write);
         var provider = new NaudioAudioOutputDeviceProvider();
-        DataContext = new MainViewModel(new AnalyzerController(), provider.GetActiveDevices());
+        _toolbarPersister = new ToolbarSettingsPersister(_settingsStore, _logger.Write);
+        var mainViewModel = new MainViewModel(new AnalyzerController(), provider.GetActiveDevices());
+        mainViewModel.ToolbarSettingsChanged += async (_, args) => await _toolbarPersister.PersistAsync(args.Settings);
+        DataContext = mainViewModel;
         Loaded += LoadSettingsAsync;
     }
 
