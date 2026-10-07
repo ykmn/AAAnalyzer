@@ -177,6 +177,12 @@ public sealed class SettingsStore
             throw new ArgumentException("Settings contain invalid values.", nameof(settings));
         }
 
+        // Until the dialog uses explicit profile operations, its saves update the
+        // same Default snapshot that startup reads. Keep the old file for LoadAsync callers.
+        var catalog = File.Exists(CatalogPath)
+            ? await LoadCatalogAsync(cancellationToken)
+            : SettingsProfileCatalog.Default;
+        await SaveCatalogAsync(catalog.SaveProfile(catalog.DefaultProfileId, settings), cancellationToken);
         await WriteAtomicallyAsync(SettingsPath, settings, _serializerOptions, cancellationToken);
     }
 

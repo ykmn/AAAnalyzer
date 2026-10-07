@@ -140,6 +140,58 @@ public sealed class SettingsStoreTests
     }
 
     [Fact]
+    public async Task CompatibilitySaveSurvivesRestartWithoutAnExistingCatalog()
+    {
+        var store = CreateCatalogStore();
+        var settings = SettingsProfileCatalogTests.ChangedSettings;
+
+        await store.SaveAsync(settings);
+
+        var restarted = new SettingsStore(Path.GetDirectoryName(store.CatalogPath), null, store.CatalogPath + ".legacy");
+        Assert.Equal(settings, await restarted.LoadStartupSettingsAsync());
+        Assert.Equal(settings, await restarted.LoadAsync());
+        Assert.Equal("Default", (await restarted.LoadCatalogAsync()).Profiles.Single().Name);
+    }
+
+    [Fact]
+    public async Task CompatibilitySaveUpdatesDesignatedDefaultAndPreservesOtherProfiles()
+    {
+        var store = CreateCatalogStore();
+        var catalog = SettingsProfileCatalog.Default.SaveAsProfile("Studio", MeasurementSettings.Default);
+        var studio = catalog.Profiles.Single(p => p.Name == "Studio");
+        catalog = catalog.SetDefaultProfile(studio.Id);
+        await store.SaveCatalogAsync(catalog);
+
+        await store.SaveAsync(SettingsProfileCatalogTests.ChangedSettings);
+
+        var restarted = new SettingsStore(Path.GetDirectoryName(store.CatalogPath), null, store.CatalogPath + ".legacy");
+        Assert.Equal(SettingsProfileCatalogTests.ChangedSettings, await restarted.LoadStartupSettingsAsync());
+        var loaded = await restarted.LoadCatalogAsync();
+        Assert.Equal(studio.Id, loaded.DefaultProfileId);
+        Assert.Equal(catalog.Profiles[0], loaded.Profiles[0]);
+        Assert.Equal(studio.Name, loaded.Profiles[1].Name);
+        Assert.Equal(2, loaded.Profiles.Count);
+    }
+
+    [Fact]
+    public async Task CompatibilitySaveCatalogFailurePreservesBothPreviousDocuments()
+    {
+        var store = CreateCatalogStore();
+        await store.SaveCatalogAsync(SettingsProfileCatalog.Default);
+        await store.SaveAsync(MeasurementSettings.Default);
+        var original = await File.ReadAllTextAsync(store.CatalogPath);
+        var oldSettings = await File.ReadAllTextAsync(store.SettingsPath);
+        using (var locked = new FileStream(store.CatalogPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            await Assert.ThrowsAnyAsync<IOException>(() => store.SaveAsync(SettingsProfileCatalogTests.ChangedSettings));
+        }
+        Assert.Equal(original, await File.ReadAllTextAsync(store.CatalogPath));
+        Assert.Equal(oldSettings, await File.ReadAllTextAsync(store.SettingsPath));
+        Assert.Equal(MeasurementSettings.Default, await store.LoadStartupSettingsAsync());
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(store.CatalogPath)!, "*.tmp"));
+    }
+
+    [Fact]
     public async Task StartupLoadsDesignatedDefaultAndIgnoresOldAppLocalSettings()
     {
         var store = CreateCatalogStore();
@@ -147,7 +199,7 @@ public sealed class SettingsStoreTests
         catalog = catalog.SetDefaultProfile(catalog.Profiles[1].Id);
         await store.SaveCatalogAsync(SettingsProfileCatalog.Default);
         await store.SaveCatalogAsync(catalog);
-        await store.SaveAsync(MeasurementSettings.Default);
+        await File.WriteAllTextAsync(store.SettingsPath, JsonSerializer.Serialize(MeasurementSettings.Default));
 
         var restarted = new SettingsStore(Path.GetDirectoryName(store.CatalogPath), null, store.CatalogPath + ".legacy");
         Assert.Equal(SettingsProfileCatalogTests.ChangedSettings, await restarted.LoadStartupSettingsAsync());
