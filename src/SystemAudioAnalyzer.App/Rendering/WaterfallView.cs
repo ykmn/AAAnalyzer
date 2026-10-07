@@ -23,6 +23,12 @@ public sealed class WaterfallView : FrameworkElement
         set => SetValue(FrameProperty, value);
     }
 
+    public void Reset()
+    {
+        _history.Clear();
+        InvalidateVisual();
+    }
+
     protected override void OnRender(DrawingContext context)
     {
         context.DrawRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), null, new Rect(new Point(), RenderSize));

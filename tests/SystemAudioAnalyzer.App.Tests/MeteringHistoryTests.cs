@@ -66,6 +66,22 @@ public sealed class MeteringHistoryTests
         Assert.Equal(-22f, point.IntegratedLufs);
     }
 
+    [Fact]
+    public void HistoriesCanBeClearedWithoutWaitingForExpiration()
+    {
+        var waterfall = new WaterfallHistory(TimeSpan.FromSeconds(10));
+        var loudness = new LoudnessHistory(TimeSpan.FromMinutes(1));
+        var timestamp = DateTimeOffset.Parse("2026-10-07T12:00:00Z");
+        waterfall.Append(timestamp, new[] { 0.1f }, new[] { 0.2f });
+        loudness.Append(timestamp, -20f);
+
+        waterfall.Clear();
+        loudness.Clear();
+
+        Assert.Empty(waterfall.GetVisibleRows(timestamp));
+        Assert.Empty(loudness.GetVisiblePoints(timestamp));
+    }
+
     private static AnalysisFrame CreateStereoFrame(float[] left, float[] right)
     {
         var format = new AudioFormat(48_000, 2);

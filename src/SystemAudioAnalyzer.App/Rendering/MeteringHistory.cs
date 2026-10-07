@@ -45,6 +45,8 @@ public sealed class WaterfallHistory
         return _rows.ToArray();
     }
 
+    public void Clear() => _rows.Clear();
+
     private void Trim(DateTimeOffset now)
     {
         var minimumTimestamp = now - _visibleDuration;
@@ -99,6 +101,8 @@ public sealed class LoudnessHistory
         Trim(now);
         return _points.ToArray();
     }
+
+    public void Clear() => _points.Clear();
 
     private void Trim(DateTimeOffset now)
     {

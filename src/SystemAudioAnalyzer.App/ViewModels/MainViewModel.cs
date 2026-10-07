@@ -15,6 +15,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _statusText = "Готов к анализу.";
     private bool _isAnalyzing;
     private AnalysisFrame? _latestFrame;
+    private RtaResolution _rtaResolution = RtaResolution.OneThird;
+    private RtaChannelMode _rtaChannelMode = RtaChannelMode.Mono;
 
     public MainViewModel(IAnalyzerController controller, IEnumerable<OutputDeviceInfo> devices)
     {
@@ -127,6 +129,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get => _latestFrame;
         set => SetField(ref _latestFrame, value);
+    }
+
+    public RtaResolution RtaResolution
+    {
+        get => _rtaResolution;
+        set => SetField(ref _rtaResolution, value);
+    }
+
+    public RtaChannelMode RtaChannelMode
+    {
+        get => _rtaChannelMode;
+        set => SetField(ref _rtaChannelMode, value);
+    }
+
+    public void ResetAllMeasurements()
+    {
+        _controller.ResetTruePeak(0);
+        _controller.ResetTruePeak(1);
+        _controller.ResetLoudness();
+        StatusText = "Измерения сброшены.";
     }
 
     private async Task StartAsync()

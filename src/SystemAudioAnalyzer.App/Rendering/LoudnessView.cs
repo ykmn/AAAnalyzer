@@ -9,6 +9,12 @@ public sealed class LoudnessView : FrameworkElement
 
     public AnalysisFrame? Frame { get => (AnalysisFrame?)GetValue(FrameProperty); set => SetValue(FrameProperty, value); }
 
+    public void Reset()
+    {
+        _history.Clear();
+        InvalidateVisual();
+    }
+
     protected override void OnRender(DrawingContext context)
     {
         context.DrawRectangle(new SolidColorBrush(Color.FromRgb(17, 24, 39)), null, new Rect(new Point(), RenderSize));

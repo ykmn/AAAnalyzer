@@ -71,6 +71,31 @@ public sealed class MainViewModelTests
         }
     }
 
+    [Fact]
+    public void RtaPresentationSettingsCanBeChangedIndependentlyOfAnalysis()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.RtaResolution = RtaResolution.OneTwelfth;
+        viewModel.RtaChannelMode = RtaChannelMode.Right;
+
+        Assert.Equal(RtaResolution.OneTwelfth, viewModel.RtaResolution);
+        Assert.Equal(RtaChannelMode.Right, viewModel.RtaChannelMode);
+        Assert.False(viewModel.IsAnalyzing);
+    }
+
+    [Fact]
+    public void ResetAllMeasurementsForwardsToTheController()
+    {
+        var controller = new FakeAnalyzerController();
+        var viewModel = new MainViewModel(controller, [new OutputDeviceInfo("default", "Speakers", true)]);
+
+        viewModel.ResetAllMeasurements();
+
+        Assert.Equal(new[] { 0, 1 }, controller.ResetTruePeakChannels);
+        Assert.Equal(1, controller.ResetLoudnessCount);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new FakeAnalyzerController(), [new OutputDeviceInfo("default", "Speakers", true)]);
 
@@ -81,6 +106,10 @@ public sealed class MainViewModelTests
         public event EventHandler<AudioSourceStateChangedEventArgs>? SourceStateChanged;
 
         public int StartCount { get; private set; }
+
+        public List<int> ResetTruePeakChannels { get; } = [];
+
+        public int ResetLoudnessCount { get; private set; }
 
         public int StopCount { get; private set; }
 
@@ -95,6 +124,10 @@ public sealed class MainViewModelTests
             StopCount++;
             return Task.CompletedTask;
         }
+
+        public void ResetTruePeak(int channel) => ResetTruePeakChannels.Add(channel);
+
+        public void ResetLoudness() => ResetLoudnessCount++;
 
         public void PublishFrame(AnalysisFrame frame) => FrameAvailable?.Invoke(this, frame);
 
@@ -113,6 +146,10 @@ public sealed class MainViewModelTests
         public Task StartAsync(SourceSelection selection, CancellationToken cancellationToken = default) => _startCompletion.Task;
 
         public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public void ResetTruePeak(int channel) { }
+
+        public void ResetLoudness() { }
 
         public void CompleteStart() => _startCompletion.SetResult();
 
