@@ -18,6 +18,33 @@ public sealed class RtaRenderingTests
         Assert.Equal(bandsPerOctave, bands.Count(band => band.CenterHz >= 1_000 && band.CenterHz < 2_000));
     }
 
+    [Theory]
+    [InlineData(RtaResolution.One)]
+    [InlineData(RtaResolution.OneThird)]
+    [InlineData(RtaResolution.OneTwelfth)]
+    public void EveryBandShowsALevelEvenWhenNarrowerThanOneFftBin(RtaResolution resolution)
+    {
+        // 48 kHz / 2048 gives ~23 Hz bins, wider than the low-frequency 1/12-octave bands.
+        var spectrum = new Spectrum(48_000, 2_048, Enumerable.Repeat(0.5f, 1_025));
+
+        var bands = RtaBandAggregator.Aggregate(spectrum, resolution);
+
+        Assert.All(bands, band => Assert.Equal(0.5f, band.Magnitude, 4));
+    }
+
+    [Fact]
+    public void BandsWithoutABinInterpolateBetweenNeighbouringBins()
+    {
+        var magnitudes = Enumerable.Range(0, 1_025).Select(bin => bin * 0.001f).ToArray();
+        var spectrum = new Spectrum(48_000, 2_048, magnitudes);
+
+        var band = RtaBandAggregator.Aggregate(spectrum, RtaResolution.OneTwelfth)
+            .First(candidate => Math.Abs(candidate.CenterHz - 40) < 1.5);
+
+        var binPosition = band.CenterHz / (48_000d / 2_048);
+        Assert.Equal((float)(binPosition * 0.001), band.Magnitude, 5);
+    }
+
     [Fact]
     public void PhaseRotationMapsMonoToVerticalAndAntiphaseToHorizontal()
     {

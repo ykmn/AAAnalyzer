@@ -43,7 +43,7 @@ public sealed class RtaBandAggregator
             var center = 1_000d * Math.Pow(2, (double)index / bandsPerOctave);
             var lower = center / Math.Pow(2, 0.5d / bandsPerOctave);
             var upper = center * Math.Pow(2, 0.5d / bandsPerOctave);
-            var magnitude = FindPeak(sampleRate, fftSize, magnitudes, lower, upper);
+            var magnitude = FindLevel(sampleRate, fftSize, magnitudes, lower, center, upper);
             bands.Add(new RtaBand(center, magnitude));
         }
 
@@ -160,13 +160,23 @@ public sealed class RtaBandAggregator
         _ => throw new ArgumentOutOfRangeException(nameof(resolution)),
     };
 
-    private static float FindPeak(int sampleRate, int fftSize, IReadOnlyList<float> magnitudes, double lowerHz, double upperHz)
+    /// <summary>Peak of the bins inside the band; bands narrower than one FFT bin interpolate between the bins around their centre.</summary>
+    private static float FindLevel(int sampleRate, int fftSize, IReadOnlyList<float> magnitudes, double lowerHz, double centerHz, double upperHz)
     {
         var binWidthHz = (float)sampleRate / fftSize;
         var first = Math.Max(0, (int)Math.Ceiling(lowerHz / binWidthHz));
         var last = Math.Min(magnitudes.Count - 1, (int)Math.Floor(upperHz / binWidthHz));
-        var peak = 0f;
-        for (var bin = first; bin <= last; bin++) peak = Math.Max(peak, magnitudes[bin]);
-        return peak;
+        if (first <= last)
+        {
+            var peak = 0f;
+            for (var bin = first; bin <= last; bin++) peak = Math.Max(peak, magnitudes[bin]);
+            return peak;
+        }
+
+        var position = Math.Clamp(centerHz / binWidthHz, 0d, magnitudes.Count - 1d);
+        var lowerBin = (int)Math.Floor(position);
+        var upperBin = Math.Min(magnitudes.Count - 1, lowerBin + 1);
+        var fraction = (float)(position - lowerBin);
+        return magnitudes[lowerBin] + ((magnitudes[upperBin] - magnitudes[lowerBin]) * fraction);
     }
 }
