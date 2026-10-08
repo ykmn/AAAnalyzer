@@ -47,6 +47,7 @@ public sealed class SettingsWindowLayoutTests
         var apply = Bounds(buttons["Apply"], root);
         Assert.True(cancel.Right <= size.Width, "Cancel must stay inside the window.");
         Assert.True(apply.Left >= 0);
+        Assert.True(buttons["Cancel"].IsCancel, "Esc must close the dialog like Cancel.");
         Assert.True(Bounds(nameBox, root).Width >= 180, "Preset name field must be wide.");
         Assert.True(Bounds(buttons["Save"], root).Width <= 70, "Save must be compact.");
         Assert.True(Bounds(buttons["Delete"], root).Width <= 70, "Delete must be compact.");

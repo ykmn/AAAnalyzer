@@ -4,8 +4,8 @@ namespace SystemAudioAnalyzer.App.Sources;
 
 public sealed class LibVlcPlayer : ILibVlcPlayer
 {
-    private const uint SampleRate = 48_000;
     private const uint Channels = 2;
+    private uint _sampleRate = 48_000;
     private Media? _media;
     private LibVLCSharp.Shared.MediaPlayer? _mediaPlayer;
     private bool _disposed;
@@ -34,8 +34,10 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(libVlc);
         _mediaPlayer.Buffering += OnBuffering;
         _mediaPlayer.EncounteredError += OnEncounteredError;
-        _mediaPlayer.SetAudioFormat("S16N", SampleRate, Channels);
         _mediaPlayer.SetAudioCallbacks(OnAudioPlay, null, null, null, null);
+        // Asking for a fixed rate makes VLC resample (44.1 -> 48 kHz adds a noise floor near -73 dB, which hides
+        // the true spectrum above the codec's low-pass), so the format callback keeps the stream's own rate.
+        _mediaPlayer.SetAudioFormatCallback(OnAudioSetup, OnAudioCleanup);
         _media = new Media(libVlc, streamUri);
         _media.AddOption($":network-caching={networkCachingMilliseconds}");
 
@@ -63,12 +65,27 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
         return ValueTask.CompletedTask;
     }
 
+    private int OnAudioSetup(ref IntPtr opaque, ref IntPtr format, ref uint rate, ref uint channels)
+    {
+        // The amem output only honours S16N; the rate stays as decoded, the channels are mixed down to stereo.
+        // The by-ref IntPtr is the native 4-byte format buffer itself: write exactly those four bytes ("S16N").
+        System.Runtime.CompilerServices.Unsafe.As<IntPtr, int>(ref format) = 0x4E363153;
+        _sampleRate = Math.Clamp(rate, 8_000u, 192_000u);
+        rate = _sampleRate;
+        channels = Channels;
+        return 0;
+    }
+
+    private static void OnAudioCleanup(IntPtr opaque)
+    {
+    }
+
     private void OnAudioPlay(IntPtr opaque, IntPtr samples, uint count, long presentationTime)
     {
         try
         {
             var pcm = LibVlcPcm.ReadInterleavedS16(samples, checked((int)count), (int)Channels);
-            PcmReceived?.Invoke(this, new LibVlcPcmEventArgs(pcm, new AudioFormat((int)SampleRate, (int)Channels)));
+            PcmReceived?.Invoke(this, new LibVlcPcmEventArgs(pcm, new AudioFormat((int)_sampleRate, (int)Channels)));
         }
         catch (Exception exception)
         {

@@ -113,7 +113,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="{loc:Tr Apply}" Click="Apply" MinWidth="74" Margin="4,0"/>
                 <Button Content="{loc:Tr Ok}" Click="Accept" MinWidth="74" Margin="4,0"/>
-                <Button Content="{loc:Tr Cancel}" Click="Cancel" MinWidth="74" Margin="4,0"/>
+                <Button Content="{loc:Tr Cancel}" IsCancel="True" Click="Cancel" MinWidth="74" Margin="4,0"/>
             </StackPanel>
         </StackPanel>
     </Grid>
