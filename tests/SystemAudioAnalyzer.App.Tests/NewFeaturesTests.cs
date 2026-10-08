@@ -185,3 +185,47 @@ public sealed class ProfileCompatibilityTests
         Assert.Equal(-110, loaded.Profiles[0].Settings.Waterfall.DisplayFloorDb);
     }
 }
+
+public sealed class RtaChannelAlignmentTests
+{
+    private static int PeakBand(SystemAudioAnalyzer.Core.Spectrum spectrum, SystemAudioAnalyzer.App.ViewModels.RtaResolution resolution, out double centerHz)
+    {
+        var bands = SystemAudioAnalyzer.App.Rendering.RtaBandAggregator.Aggregate(spectrum, resolution);
+        var peak = 0;
+        for (var index = 1; index < bands.Count; index++) if (bands[index].Magnitude > bands[peak].Magnitude) peak = index;
+        centerHz = bands[peak].CenterHz;
+        return peak;
+    }
+
+    [Theory]
+    [InlineData(1_000.0, true, SystemAudioAnalyzer.App.ViewModels.RtaResolution.OneTwelfth)]
+    [InlineData(3_150.0, false, SystemAudioAnalyzer.App.ViewModels.RtaResolution.OneThird)]
+    [InlineData(120.0, true, SystemAudioAnalyzer.App.ViewModels.RtaResolution.OneSixth)]
+    public void MonoLeftAndRightPutTheSameToneInTheSameBand(double toneHz, bool toneInBothChannels, SystemAudioAnalyzer.App.ViewModels.RtaResolution resolution)
+    {
+        var format = new SystemAudioAnalyzer.Core.AudioFormat(44_100, 2);
+        var analyzer = new SystemAudioAnalyzer.Core.SpectrumAnalyzer(8192, SystemAudioAnalyzer.Core.SpectrumWindow.Blackman);
+        var samples = new float[8192 * 2 * 2];
+        for (var frame = 0; frame < samples.Length / 2; frame++)
+        {
+            var value = (float)(0.5 * Math.Sin(2 * Math.PI * toneHz * frame / format.SampleRate));
+            samples[frame * 2] = value;
+            samples[(frame * 2) + 1] = toneInBothChannels ? value : 0f;
+        }
+
+        Assert.True(analyzer.TryProcessStereo(samples, format, out var stereo));
+
+        var mono = PeakBand(stereo!.Mono, resolution, out var monoCenter);
+        var left = PeakBand(stereo.Left, resolution, out var leftCenter);
+        Assert.Equal(mono, left);
+        Assert.Equal(monoCenter, leftCenter);
+        if (toneInBothChannels)
+        {
+            Assert.Equal(mono, PeakBand(stereo.Right, resolution, out _));
+        }
+
+        // The peak band must contain the tone: its centre is within half a band of the tone's frequency.
+        var bandsPerOctave = resolution switch { SystemAudioAnalyzer.App.ViewModels.RtaResolution.One => 1, SystemAudioAnalyzer.App.ViewModels.RtaResolution.OneThird => 3, SystemAudioAnalyzer.App.ViewModels.RtaResolution.OneSixth => 6, _ => 12 };
+        Assert.InRange(Math.Abs(Math.Log2(monoCenter / toneHz)), 0, 0.5 / bandsPerOctave + 1e-9);
+    }
+}
