@@ -33,7 +33,7 @@ public sealed record AnalyzerSettings([property: JsonRequired] double DisplayFlo
 
 public sealed record WaterfallSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] double DisplayOffsetDb, [property: JsonRequired] string PaletteColor)
 {
-    public ImmutableArray<ColorStop> GradientStops { get; init; } = [new(-110, "#000000"), new(-80, "#0080C0"), new(-55, "#00FF39"), new(-45, "#E8E800")];
+    public ImmutableArray<ColorStop> GradientStops { get; init; } = [new(-110, "#000000"), new(-80, "#2F6FD6"), new(-55, "#2FA84F"), new(-45, "#E0C93A"), new(-25, "#D6392F")];
 
     public bool Equals(WaterfallSettings? other) => other is not null
         && DisplayFloorDb.Equals(other.DisplayFloorDb) && DisplayOffsetDb.Equals(other.DisplayOffsetDb)

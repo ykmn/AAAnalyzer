@@ -103,7 +103,7 @@ public sealed class NewFeaturesTests
         await viewModel.StartCommand.ExecuteAsync();
         controller.Publish(new AudioSourceStateChangedEventArgs(AudioSourceState.Buffering, 42));
 
-        Assert.Equal("Буферизация потока… 42%", viewModel.StatusText);
+        Assert.Equal("Buffering the stream… 42%", viewModel.StatusText);
         Assert.Equal(AnalysisRunState.Starting, viewModel.RunState);
     }
 
@@ -120,5 +120,56 @@ public sealed class NewFeaturesTests
         public void ResetLoudness() { }
         public void SetAnalysisConfiguration(AnalysisConfiguration configuration) { }
         public void SetLoudnessIntegratedWindow(int seconds) { }
+    }
+}
+
+public sealed class LocalizationTests
+{
+    [Fact]
+    public void EveryKeyHasBothLanguagesAndPlaceholdersMatch()
+    {
+        var table = (IReadOnlyDictionary<string, (string English, string Russian)>)typeof(SystemAudioAnalyzer.App.Localization.Localizer).Assembly
+            .GetType("SystemAudioAnalyzer.App.Localization.Strings")!.GetField("Table")!.GetValue(null)!;
+
+        Assert.All(table, pair =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(pair.Value.English), pair.Key);
+            Assert.False(string.IsNullOrWhiteSpace(pair.Value.Russian), pair.Key);
+            var placeholders = new Func<string, string[]>(text => System.Text.RegularExpressions.Regex.Matches(text, @"\{\d\}").Select(match => match.Value).OrderBy(value => value).ToArray());
+            Assert.Equal(placeholders(pair.Value.English), placeholders(pair.Value.Russian));
+        });
+    }
+
+    [Fact]
+    public void SwitchingLanguageChangesTextsAndRaisesTheEvent()
+    {
+        var localizer = SystemAudioAnalyzer.App.Localization.Localizer.Instance;
+        var raised = 0;
+        EventHandler handler = (_, _) => raised++;
+        localizer.LanguageChanged += handler;
+        try
+        {
+            localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.Russian;
+            Assert.Equal("Настройки", localizer["SettingsTitle"]);
+            localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.English;
+            Assert.Equal("Settings", localizer["SettingsTitle"]);
+            Assert.Equal(2, raised);
+        }
+        finally
+        {
+            localizer.LanguageChanged -= handler;
+            localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.English;
+        }
+    }
+
+    [Fact]
+    public void LanguageIsStoredInTheDataFolder()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "AAAnalyzerTests", Guid.NewGuid().ToString("N"));
+        var preferences = new SystemAudioAnalyzer.App.Localization.AppPreferences(directory);
+
+        preferences.SaveLanguage(SystemAudioAnalyzer.App.Localization.AppLanguage.Russian);
+
+        Assert.Equal(SystemAudioAnalyzer.App.Localization.AppLanguage.Russian, new SystemAudioAnalyzer.App.Localization.AppPreferences(directory).LoadLanguage());
     }
 }

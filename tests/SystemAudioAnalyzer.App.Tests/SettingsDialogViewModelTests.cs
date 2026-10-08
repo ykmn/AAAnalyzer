@@ -201,7 +201,7 @@ public sealed class SettingsDialogViewModelTests
         viewModel.UpdateSelectedGradientColor("#123456");
 
         Assert.Equal("#123456", viewModel.Current.Waterfall.GradientStops[1].Color);
-        Assert.Equal("#00FF39", viewModel.Current.Waterfall.GradientStops[2].Color);
+        Assert.Equal("#2FA84F", viewModel.Current.Waterfall.GradientStops[2].Color);
         Assert.True(viewModel.AddGradientStop());
         Assert.Contains(viewModel.Current.Waterfall.GradientStops, stop => stop.LevelDb == -67.5);
     }

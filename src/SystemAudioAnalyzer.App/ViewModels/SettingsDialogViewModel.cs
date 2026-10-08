@@ -1,3 +1,4 @@
+using SystemAudioAnalyzer.App.Localization;
 using System.Collections.ObjectModel;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -10,7 +11,36 @@ namespace SystemAudioAnalyzer.App.ViewModels;
 
 public enum GradientKind { Waterfall, Loudness }
 
-public sealed record SettingsOption<T>(string Label, T Value);
+/// <summary>A list entry; a localized one re-reads its label when the UI language changes.</summary>
+public sealed class SettingsOption<T> : INotifyPropertyChanged
+{
+    private readonly string? _key;
+    private readonly string _label;
+
+    public SettingsOption(string label, T value)
+    {
+        _label = label;
+        Value = value;
+    }
+
+    private SettingsOption(string key, T value, bool localized)
+    {
+        _key = key;
+        _label = key;
+        Value = value;
+        System.Windows.WeakEventManager<Localizer, EventArgs>.AddHandler(Localizer.Instance, nameof(Localizer.LanguageChanged), OnLanguageChanged);
+    }
+
+    public static SettingsOption<T> Tr(string key, T value) => new(key, value, localized: true);
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string Label => _key is null ? _label : Localizer.T(_key);
+
+    public T Value { get; }
+
+    private void OnLanguageChanged(object? sender, EventArgs eventArgs) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
+}
 
 public sealed class SettingsDialogViewModel : INotifyPropertyChanged
 {
@@ -50,22 +80,22 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
     public IReadOnlyList<SettingsProfile> Profiles => _catalog.Profiles;
     public IReadOnlyList<SettingsOption<string>> ProfileOptions => _catalog.Profiles
         .Select(profile => new SettingsOption<string>(
-            profile.Name + (profile.Id == _catalog.DefaultProfileId ? " (default)" : string.Empty), profile.Id))
+            profile.Name + (profile.Id == _catalog.DefaultProfileId ? Localizer.T("DefaultSuffix") : string.Empty), profile.Id))
         .ToArray();
     public IReadOnlyList<int> FftSizes { get; } = [512, 1024, 2048, 4096, 8192, 16384];
     public IReadOnlyList<AnalyzerWindowFunction> WindowFunctions { get; } = Enum.GetValues<AnalyzerWindowFunction>();
     public IReadOnlyList<AnalyzerFrequencyScale> FrequencyScales { get; } = Enum.GetValues<AnalyzerFrequencyScale>();
     public IReadOnlyList<AnalyzerAmplitudeScale> AmplitudeScales { get; } = Enum.GetValues<AnalyzerAmplitudeScale>();
     public IReadOnlyList<SettingsOption<LoudnessMetric>> LoudnessMetricOptions { get; } =
-    [new("Momentary", LoudnessMetric.Momentary), new("Short-term", LoudnessMetric.ShortTerm), new("Integrated", LoudnessMetric.Integrated)];
+    [SettingsOption<LoudnessMetric>.Tr("Momentary", LoudnessMetric.Momentary), SettingsOption<LoudnessMetric>.Tr("ShortTerm", LoudnessMetric.ShortTerm), SettingsOption<LoudnessMetric>.Tr("Integrated", LoudnessMetric.Integrated)];
     public IReadOnlyList<SettingsOption<RtaChannelMode>> RtaSourceOptions { get; } =
-    [new("Mono (L+R)", RtaChannelMode.Mono), new("L", RtaChannelMode.Left), new("R", RtaChannelMode.Right)];
+    [SettingsOption<RtaChannelMode>.Tr("RtaMono", RtaChannelMode.Mono), new("L", RtaChannelMode.Left), new("R", RtaChannelMode.Right)];
     public IReadOnlyList<SettingsOption<RtaResolution>> RtaResolutionOptions { get; } =
-    [new("1/1 octave", RtaResolution.One), new("1/3 octave", RtaResolution.OneThird), new("1/6 octave", RtaResolution.OneSixth), new("1/12 octave", RtaResolution.OneTwelfth)];
+    [SettingsOption<RtaResolution>.Tr("Oct1", RtaResolution.One), SettingsOption<RtaResolution>.Tr("Oct3", RtaResolution.OneThird), SettingsOption<RtaResolution>.Tr("Oct6", RtaResolution.OneSixth), SettingsOption<RtaResolution>.Tr("Oct12", RtaResolution.OneTwelfth)];
     public IReadOnlyList<SettingsOption<MeterFontSize>> MeterFontSizeOptions { get; } =
-    [new("Small", MeterFontSize.Small), new("Medium", MeterFontSize.Medium), new("Large", MeterFontSize.Large)];
+    [SettingsOption<MeterFontSize>.Tr("Small", MeterFontSize.Small), SettingsOption<MeterFontSize>.Tr("Medium", MeterFontSize.Medium), SettingsOption<MeterFontSize>.Tr("Large", MeterFontSize.Large)];
     public IReadOnlyList<SettingsOption<LufsScalePreset>> LufsScaleOptions { get; } =
-    [new("Broadcast (0…-36, step 3)", LufsScalePreset.Broadcast), new("Full scale", LufsScalePreset.FullScale), new("Custom", LufsScalePreset.Custom)];
+    [SettingsOption<LufsScalePreset>.Tr("ScaleBroadcast", LufsScalePreset.Broadcast), SettingsOption<LufsScalePreset>.Tr("ScaleFull", LufsScalePreset.FullScale), SettingsOption<LufsScalePreset>.Tr("ScaleCustom", LufsScalePreset.Custom)];
     public ObservableCollection<ColorStop> GradientStops { get; }
 
     public MeasurementSettings Current => _session.Current;

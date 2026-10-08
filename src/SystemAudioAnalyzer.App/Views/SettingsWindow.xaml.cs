@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using SystemAudioAnalyzer.App.Localization;
 using SystemAudioAnalyzer.App.Settings;
 using SystemAudioAnalyzer.App.ViewModels;
 
@@ -40,7 +41,15 @@ public partial class SettingsWindow : Window
         };
         if (Pages.SelectedIndex == 3) viewModel.SelectedGradientKind = GradientKind.Loudness;
         else if (Pages.SelectedIndex == 1) viewModel.SelectedGradientKind = GradientKind.Waterfall;
+        LanguageBox.ItemsSource = new SettingsOption<AppLanguage>[] { new("English", AppLanguage.English), new("Русский", AppLanguage.Russian) };
+        LanguageBox.SelectedValue = Localizer.Instance.Language;
         Closing += RestoreRuntimeOnWindowClose;
+    }
+
+    // The language applies at once and is stored on its own, not in the profile or the Apply/Cancel draft.
+    private void LanguageChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs eventArgs)
+    {
+        if (LanguageBox.SelectedValue is AppLanguage language) Localizer.Instance.Language = language;
     }
 
     private void Accept(object sender, RoutedEventArgs eventArgs)
@@ -182,7 +191,7 @@ public partial class SettingsWindow : Window
             ? string.IsNullOrWhiteSpace(_viewModel.ValidationMessage)
                 ? exception.Message
                 : _viewModel.ValidationMessage
-            : "Unable to save profile. Check access to the application Data folder.";
+            : Localizer.T("SaveProfileFailed");
     }
 
     private void RestoreRuntimeOnWindowClose(object? sender, CancelEventArgs eventArgs)

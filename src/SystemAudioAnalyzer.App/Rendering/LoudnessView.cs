@@ -17,6 +17,8 @@ public sealed class LoudnessView : FrameworkElement
 
     private (double Minimum, double Maximum)? _lastRange;
 
+    public LoudnessView() => Localization.Localizer.Instance.LanguageChanged += (_, _) => InvalidateVisual();
+
     public void Reset()
     {
         _history.Clear();
@@ -71,7 +73,7 @@ public sealed class LoudnessView : FrameworkElement
         context.DrawRectangle(new SolidColorBrush(Color.FromArgb(150, 0x5C, 0x12, 0x12)), null, new Rect(0, top, ActualWidth, Math.Max(0, bottom - top)));
         if (target < minimum || target > maximum) return;
         context.DrawLine(new Pen(brush, 1) { DashStyle = DashStyles.Dash }, new Point(0, y), new Point(ActualWidth, y));
-        var text = new FormattedText($"Target {target:0} LU", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+        var text = new FormattedText(Localization.Localizer.T("TargetLabel", target.ToString("0", System.Globalization.CultureInfo.InvariantCulture)), System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface("Segoe UI"), 10, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
         context.DrawText(text, new Point(ActualWidth - text.Width - 6, y - text.Height - 1));
     }
@@ -80,9 +82,9 @@ public sealed class LoudnessView : FrameworkElement
     {
         var caption = Settings.Loudness.Metric switch
         {
-            LoudnessMetric.Momentary => "Momentary Loudness",
-            LoudnessMetric.ShortTerm => "Short-term Loudness",
-            _ => "Integrated Loudness",
+            LoudnessMetric.Momentary => Localization.Localizer.T("CaptionMomentary"),
+            LoudnessMetric.ShortTerm => Localization.Localizer.T("CaptionShortTerm"),
+            _ => Localization.Localizer.T("CaptionIntegrated"),
         };
         var text = new FormattedText(caption, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface(new System.Windows.Media.FontFamily("Segoe UI"), System.Windows.FontStyles.Normal, System.Windows.FontWeights.Bold, System.Windows.FontStretches.Normal),

@@ -27,6 +27,7 @@ public sealed class WaterfallView : FrameworkElement
     public WaterfallView()
     {
         MouseMove += OnMouseMove;
+        Localization.Localizer.Instance.LanguageChanged += (_, _) => InvalidateVisual();
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
     }
 

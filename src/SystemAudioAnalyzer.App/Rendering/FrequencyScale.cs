@@ -43,10 +43,10 @@ public static class FrequencyScale
     {
         ValidateHertz(hertz);
         return hertz < 1_000d
-            ? hertz.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " Hz"
+            ? hertz.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " " + Localization.Localizer.T("UnitHz")
             : hertz < 10_000d
-                ? (hertz / 1_000d).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " kHz"
-                : (hertz / 1_000d).ToString("00.0", System.Globalization.CultureInfo.InvariantCulture) + " kHz";
+                ? (hertz / 1_000d).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " " + Localization.Localizer.T("UnitKhz")
+                : (hertz / 1_000d).ToString("00.0", System.Globalization.CultureInfo.InvariantCulture) + " " + Localization.Localizer.T("UnitKhz");
     }
 
     private static void ValidateHertz(double hertz)

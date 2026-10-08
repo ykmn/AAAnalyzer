@@ -36,7 +36,7 @@ public static class ToolbarSettingsActions
 
     public static string LoudnessScaleText(MeasurementSettings settings)
     {
-        if (settings.Loudness.AutoScale) return "auto";
+        if (settings.Loudness.AutoScale) return Localization.Localizer.T("ScaleAuto");
         var half = settings.Loudness.SpanLufs / 2d;
         return string.Create(CultureInfo.InvariantCulture, $"{settings.Loudness.CentreLufs - half:0.#}..{settings.Loudness.CentreLufs + half:0.#}");
     }

@@ -46,7 +46,7 @@ public sealed class FrameStatisticsTests
         statistics.Record(Start, Start, 2, TimeSpan.FromMilliseconds(2));
 
         Assert.Equal(5, statistics.DroppedBuffers);
-        Assert.Contains("потеряно буферов 5", statistics.Text, StringComparison.Ordinal);
+        Assert.Contains("dropped buffers 5", statistics.Text, StringComparison.Ordinal);
 
         statistics.Reset();
 

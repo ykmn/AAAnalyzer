@@ -16,6 +16,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         Sources.LibVlcRuntime.WarmUp(exception => _logger.Write(exception));
+        var preferences = new Localization.AppPreferences(Path.Combine(AppContext.BaseDirectory, "Data"), _logger.Write);
+        Localization.Localizer.Instance.Language = preferences.LoadLanguage();
+        Localization.Localizer.Instance.LanguageChanged += (_, _) => preferences.SaveLanguage(Localization.Localizer.Instance.Language);
         InitializeComponent();
         MeterRail.ResetRequested += ResetMeterRailValue;
         LoudnessView.RangeChanged += (_, range) => Dispatcher.BeginInvoke(() => MeterRail.LoudnessRange = range);
@@ -125,7 +128,7 @@ public partial class MainWindow : Window
         {
             var catalog = await _settingsStore.LoadCatalogAsync();
             var viewModel = new SettingsDialogViewModel(_settingsStore, catalog, mainViewModel.MeasurementSettings, page,
-                () => MessageBox.Show(this, "Discard the unsaved changes and switch profile?", "Unsaved changes",
+                () => MessageBox.Show(this, Localization.Localizer.T("ConfirmDiscardText"), Localization.Localizer.T("ConfirmDiscardTitle"),
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
             var dialog = new SettingsWindow(viewModel) { Owner = this };
             dialog.SettingsSaveFailed += (_, args) => _logger.Write(args.Exception);

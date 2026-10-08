@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using SystemAudioAnalyzer.App.Localization;
 using SystemAudioAnalyzer.App.Services;
 using SystemAudioAnalyzer.App.Settings;
 
@@ -13,7 +14,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private SourceMode _selectedSourceMode;
     private OutputDeviceInfo? _selectedDevice;
     private string _streamUrl = string.Empty;
-    private string _statusText = "Готов к анализу.";
+    private string _statusText = Localizer.T("StatusReady");
     private bool _isAnalyzing;
     private AnalysisFrame? _latestFrame;
     private RtaResolution _rtaResolution = RtaResolution.OneThird;
@@ -38,6 +39,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StopCommand = new AsyncCommand(StopAsync, () => IsAnalyzing);
         _controller.FrameAvailable += OnFrameAvailable;
         _controller.SourceStateChanged += OnSourceStateChanged;
+        Localizer.Instance.LanguageChanged += (_, _) => RunOnUi(RefreshLocalizedTexts);
         ApplyEngineSettings(_measurementSettings);
     }
 
@@ -160,7 +162,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public bool CanStart => !IsAnalyzing && TryCreateSelection(out _);
 
     public string ValidationMessage => SelectedSourceMode == SourceMode.Stream && !TryGetStreamUri(out _)
-        ? "Введите корректный HTTP/HTTPS адрес Icecast или HLS-потока."
+        ? Localizer.T("ValidationUrl")
         : string.Empty;
 
     /// <summary>Drives the Start/Stop button highlighting.</summary>
@@ -295,13 +297,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string LoudnessScaleText => ToolbarSettingsActions.LoudnessScaleText(MeasurementSettings);
 
-    public string LoudnessTargetText => $"Tgt {MeasurementSettings.Loudness.TargetLufs:0}";
+    public string LoudnessTargetText => $"{Localizer.T("Tgt")} {MeasurementSettings.Loudness.TargetLufs:0}";
 
-    public string RtaTiltText => MeasurementSettings.Rta.TiltDbPerOctave == 0 ? "Tilt 0" : $"Tilt {MeasurementSettings.Rta.TiltDbPerOctave:+0.##;-0.##}";
+    public string RtaTiltText => MeasurementSettings.Rta.TiltDbPerOctave == 0 ? $"{Localizer.T("Tilt")} 0" : $"{Localizer.T("Tilt")} {MeasurementSettings.Rta.TiltDbPerOctave:+0.##;-0.##}";
 
-    public string RtaAverageText => $"Avg {MeasurementSettings.Rta.AveragingCount}";
+    public string RtaAverageText => $"{Localizer.T("Avg")} {MeasurementSettings.Rta.AveragingCount}";
 
-    public string RtaTargetText => $"Tgt {MeasurementSettings.Rta.TargetLineDb:0}";
+    public string RtaTargetText => $"{Localizer.T("Tgt")} {MeasurementSettings.Rta.TargetLineDb:0}";
 
     public void ZoomLoudness(double factor) => ApplyToolbarChange(settings => ToolbarSettingsActions.ZoomLoudness(settings, factor));
 
@@ -336,7 +338,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _controller.ResetTruePeak(0);
         _controller.ResetTruePeak(1);
         _controller.ResetLoudness();
-        StatusText = "Измерения сброшены.";
+        StatusText = Localizer.T("StatusReset");
     }
 
     public void ResetTruePeakMaximum(int channel) => _controller.ResetTruePeakMaximum(channel);
@@ -353,8 +355,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             StatusText = TryGetStreamUri(out var host) && SelectedSourceMode == SourceMode.Stream
-                ? $"Подключение к {host!.Host}…"
-                : "Запуск анализа…";
+                ? Localizer.T("StatusConnectingHost", host!.Host)
+                : Localizer.T("StatusStarting");
             RunState = AnalysisRunState.Starting;
             _sourceReportedState = false;
             _frameStatistics.Reset();
@@ -366,19 +368,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 // The stream is still connecting or buffering; the source events and the first frame
                 // move the state on, so the status keeps saying what is happening.
                 RememberStream(StreamUrl);
-                if (RunState is AnalysisRunState.Starting && !_sourceReportedState) StatusText = $"Подключение к {selection.StreamUri?.Host}…";
+                if (RunState is AnalysisRunState.Starting && !_sourceReportedState) StatusText = Localizer.T("StatusConnectingHost", selection.StreamUri?.Host ?? string.Empty);
             }
             else
             {
                 if (RunState is AnalysisRunState.Starting) RunState = AnalysisRunState.Running;
-                StatusText = "Анализ выполняется.";
+                StatusText = Localizer.T("StatusRunning");
             }
         }
         catch (Exception exception)
         {
             IsAnalyzing = false;
             RunState = AnalysisRunState.Faulted;
-            StatusText = $"Не удалось запустить анализ: {exception.Message}";
+            StatusText = Localizer.T("StatusStartFailed", exception.Message);
         }
     }
 
@@ -388,12 +390,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             await _controller.StopAsync();
             RunState = AnalysisRunState.Stopped;
-            StatusText = "Анализ остановлен.";
+            StatusText = Localizer.T("StatusStopped");
             DiagnosticsText = string.Empty;
         }
         catch (Exception exception)
         {
-            StatusText = $"Не удалось остановить анализ: {exception.Message}";
+            StatusText = Localizer.T("StatusStopFailed", exception.Message);
         }
         finally
         {
@@ -410,7 +412,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 // Audio is flowing, whatever the source last reported.
                 RunState = AnalysisRunState.Running;
-                StatusText = "Анализ выполняется.";
+                StatusText = Localizer.T("StatusRunning");
             }
             var uiWork = System.Diagnostics.Stopwatch.GetElapsedTime(started);
             var now = DateTimeOffset.UtcNow;
@@ -438,14 +440,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void ApplySourceStatus(AudioSourceStateChangedEventArgs eventArgs) => StatusText = eventArgs.State switch
         {
-            AudioSourceState.Connecting => "Подключение к источнику…",
+            AudioSourceState.Connecting => Localizer.T("StatusConnecting"),
             AudioSourceState.Buffering => eventArgs.BufferingPercent is { } percent
-                ? $"Буферизация потока… {percent:0}%"
-                : "Буферизация потока…",
-            AudioSourceState.Running => "Анализ выполняется.",
-            AudioSourceState.Faulted => "Ошибка источника. Можно повторить запуск.",
-            _ => "Анализ остановлен.",
+                ? Localizer.T("StatusBufferingPercent", percent.ToString("0", System.Globalization.CultureInfo.InvariantCulture))
+                : Localizer.T("StatusBuffering"),
+            AudioSourceState.Running => Localizer.T("StatusRunning"),
+            AudioSourceState.Faulted => Localizer.T("StatusSourceFault"),
+            _ => Localizer.T("StatusStopped"),
         };
+
+    private void RefreshLocalizedTexts()
+    {
+        OnPropertyChanged(nameof(LoudnessTargetText));
+        OnPropertyChanged(nameof(RtaTiltText));
+        OnPropertyChanged(nameof(RtaAverageText));
+        OnPropertyChanged(nameof(RtaTargetText));
+        OnPropertyChanged(nameof(LoudnessScaleText));
+        OnPropertyChanged(nameof(ValidationMessage));
+    }
 
     private void RunOnUi(Action action)
     {

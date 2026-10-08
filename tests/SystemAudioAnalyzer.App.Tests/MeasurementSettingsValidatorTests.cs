@@ -17,7 +17,7 @@ public sealed class MeasurementSettingsValidatorTests
         Assert.Equal(AnalyzerAmplitudeScale.Logarithmic, settings.Analyzer.AmplitudeScale);
         Assert.Equal(-130, settings.Analyzer.DisplayFloorDb);
         Assert.Equal(1, settings.Analyzer.Gain);
-        Assert.Equal(new double[] { -110, -80, -55, -45 }, settings.Waterfall.GradientStops.Select(stop => stop.LevelDb));
+        Assert.Equal(new double[] { -110, -80, -55, -45, -25 }, settings.Waterfall.GradientStops.Select(stop => stop.LevelDb));
         Assert.Empty(MeasurementSettingsValidator.Validate(settings));
         Assert.True(MeasurementSettingsValidator.IsValid(settings));
     }
@@ -25,7 +25,7 @@ public sealed class MeasurementSettingsValidatorTests
     [Fact]
     public void WaterfallDefaultColorsMatchReferenceSwatches()
     {
-        Assert.Equal(new[] { "#000000", "#0080C0", "#00FF39", "#E8E800" },
+        Assert.Equal(new[] { "#000000", "#2F6FD6", "#2FA84F", "#E0C93A", "#D6392F" },
             MeasurementSettings.Default.Waterfall.GradientStops.Select(stop => stop.Color));
     }
 

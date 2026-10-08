@@ -1,4 +1,5 @@
 using System.Globalization;
+using SystemAudioAnalyzer.App.Localization;
 
 namespace SystemAudioAnalyzer.App.ViewModels;
 
@@ -39,8 +40,9 @@ public sealed class FrameStatistics
         DroppedBuffers = 0;
     }
 
-    public string Text => string.Create(CultureInfo.InvariantCulture,
-        $"{FramesPerSecond:0} fps · доставка {DelayMilliseconds:0} мс · UI {UiWorkMilliseconds:0.0} мс · потеряно буферов {DroppedBuffers}");
+    public string Text => string.Format(CultureInfo.InvariantCulture, Localizer.T("Diagnostics"),
+        FramesPerSecond.ToString("0", CultureInfo.InvariantCulture), DelayMilliseconds.ToString("0", CultureInfo.InvariantCulture),
+        UiWorkMilliseconds.ToString("0.0", CultureInfo.InvariantCulture), DroppedBuffers);
 
     private static double Smooth(double? previous, double value) =>
         previous is null ? value : (previous.Value * (1 - Smoothing)) + (value * Smoothing);

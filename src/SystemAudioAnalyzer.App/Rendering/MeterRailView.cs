@@ -29,6 +29,8 @@ public sealed class MeterRailView : FrameworkElement
     /// <summary>The range the Loudness plot currently shows, so the LU bar lines up with it when that range is automatic.</summary>
     public (double Minimum, double Maximum)? LoudnessRange { get => ((double, double)?)GetValue(LoudnessRangeProperty); set => SetValue(LoudnessRangeProperty, value); }
 
+    public MeterRailView() => Localization.Localizer.Instance.LanguageChanged += (_, _) => InvalidateVisual();
+
     public event EventHandler<MeterRailResetEventArgs>? ResetRequested;
 
     public void ResetPhase()
@@ -65,8 +67,8 @@ public sealed class MeterRailView : FrameworkElement
         var dimText = new SolidColorBrush(Color.FromRgb(120, 135, 150));
         if (meters.ShowPeakReadout)
         {
-            DrawText(context, "MAX", new Rect(layout.DbScale.Left, layout.LeftMaximum.Top, layout.DbScale.Width, 12), fontSize - 1, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Right);
-            DrawText(context, "NOW", new Rect(layout.DbScale.Left, layout.LeftCurrent.Top, layout.DbScale.Width, 12), fontSize - 1, dimText, TextAlignment.Right);
+            DrawText(context, Localization.Localizer.T("RailMax"), new Rect(layout.DbScale.Left, layout.LeftMaximum.Top, layout.DbScale.Width, 12), fontSize - 1, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Right);
+            DrawText(context, Localization.Localizer.T("RailNow"), new Rect(layout.DbScale.Left, layout.LeftCurrent.Top, layout.DbScale.Width, 12), fontSize - 1, dimText, TextAlignment.Right);
         }
         if (meters.ShowDbScale)
         {
