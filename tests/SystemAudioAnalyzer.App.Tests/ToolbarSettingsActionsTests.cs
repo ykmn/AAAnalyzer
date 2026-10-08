@@ -68,6 +68,20 @@ public sealed class ToolbarSettingsActionsTests
         Assert.Equal(1_000, ToolbarSettingsActions.WithRtaAveraging(Defaults, 5_000).Rta.AveragingCount);
     }
 
+    [Theory]
+    [InlineData(50, -10, 40)]
+    [InlineData(20, -10, 10)]
+    [InlineData(10, -10, 1)]
+    [InlineData(1, 10, 10)]
+    [InlineData(10, 10, 20)]
+    [InlineData(45, -10, 30)]
+    public void RtaAveragingStepsThroughOneThenMultiplesOfTen(int start, int delta, int expected)
+    {
+        var settings = Defaults with { Rta = Defaults.Rta with { AveragingCount = start } };
+
+        Assert.Equal(expected, ToolbarSettingsActions.WithRtaAveraging(settings, delta).Rta.AveragingCount);
+    }
+
     [Fact]
     public void RtaTargetStaysInsideTheScale()
     {

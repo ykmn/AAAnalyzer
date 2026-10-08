@@ -11,6 +11,8 @@ public sealed class MeterRailView : FrameworkElement
     public static readonly DependencyProperty FrameProperty = DependencyProperty.Register(
         nameof(Frame), typeof(AnalysisFrame), typeof(MeterRailView),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
+    public static readonly DependencyProperty LoudnessRangeProperty = DependencyProperty.Register(
+        nameof(LoudnessRange), typeof((double Minimum, double Maximum)?), typeof(MeterRailView), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
     private readonly MeteringHistory[] _meteringHistories = [new(), new()];
     private readonly MeterDisplayState[] _displayStates = [new(0, 0, 0), new(0, 0, 0)];
 
@@ -21,6 +23,9 @@ public sealed class MeterRailView : FrameworkElement
     }
 
     public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
+
+    /// <summary>The range the Loudness plot currently shows, so the LU bar lines up with it when that range is automatic.</summary>
+    public (double Minimum, double Maximum)? LoudnessRange { get => ((double, double)?)GetValue(LoudnessRangeProperty); set => SetValue(LoudnessRangeProperty, value); }
 
     public event EventHandler<MeterRailResetEventArgs>? ResetRequested;
 
@@ -46,13 +51,13 @@ public sealed class MeterRailView : FrameworkElement
         var meters = Settings.Meters;
         var lufsValue = MeterRailLayout.SelectLoudness(Frame?.AdvancedMeasurements?.Loudness, meters.LufsMetric);
         var fontSize = meters.FontSize switch { MeterFontSize.Small => 8d, MeterFontSize.Medium => 9d, _ => 10d };
-        var lufsScale = MeterRailLayout.ResolveLufsScale(meters);
+        var lufsScale = MeterRailLayout.ResolveLufsRange(Settings, LoudnessRange);
         var lufsBrush = ColorBrush(meters.LufsColor);
         var dimText = new SolidColorBrush(Color.FromRgb(120, 135, 150));
         if (meters.ShowPeakReadout)
         {
-            DrawText(context, "MAX", new Rect(layout.DbScale.Left, 2, layout.DbScale.Width, 12), fontSize - 1, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Right);
-            DrawText(context, "NOW", new Rect(layout.DbScale.Left, 15, layout.DbScale.Width, 12), fontSize - 1, dimText, TextAlignment.Right);
+            DrawText(context, "MAX", new Rect(layout.DbScale.Left, layout.LeftMaximum.Top, layout.DbScale.Width, 12), fontSize - 1, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Right);
+            DrawText(context, "NOW", new Rect(layout.DbScale.Left, layout.LeftCurrent.Top, layout.DbScale.Width, 12), fontSize - 1, dimText, TextAlignment.Right);
         }
         if (meters.ShowDbScale)
         {
@@ -123,7 +128,7 @@ public sealed class MeterRailView : FrameworkElement
         if (meters.ShowLkfsReadout)
         {
             DrawText(context, lufsValue.HasValue ? $"{lufsValue.Value:0.0}" : "—", layout.LufsReadout, fontSize + 5, lufsBrush, TextAlignment.Center, FontWeights.Bold);
-            DrawText(context, "LUFS", layout.LufsCaption, fontSize, dimText, TextAlignment.Center);
+            DrawText(context, MeterRailLayout.LufsCaptionText(meters.LufsMetric), layout.LufsCaption, fontSize, dimText, TextAlignment.Center);
         }
     }
 

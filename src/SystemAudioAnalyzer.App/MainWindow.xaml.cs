@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         MeterRail.ResetRequested += ResetMeterRailValue;
+        LoudnessView.RangeChanged += (_, range) => Dispatcher.BeginInvoke(() => MeterRail.LoudnessRange = range);
         _settingsStore = new SettingsStore(diagnostic: _logger.Write);
         var provider = new NaudioAudioOutputDeviceProvider();
         _toolbarPersister = new ToolbarSettingsPersister(_settingsStore, _logger.Write);
@@ -46,8 +47,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CycleRolling(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.CycleRollingWindow();
-
     private void LoudnessZoomOut(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ZoomLoudness(1.5);
 
     private void LoudnessZoomIn(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ZoomLoudness(1 / 1.5);
@@ -73,6 +72,7 @@ public partial class MainWindow : Window
 
         WaterfallView.Reset();
         LoudnessView.Reset();
+        RtaView.Reset();
     }
 
     private async void SaveScreenshot(object sender, RoutedEventArgs eventArgs)

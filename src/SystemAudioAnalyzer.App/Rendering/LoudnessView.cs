@@ -12,6 +12,11 @@ public sealed class LoudnessView : FrameworkElement
     public AnalysisFrame? Frame { get => (AnalysisFrame?)GetValue(FrameProperty); set => SetValue(FrameProperty, value); }
     public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
 
+    /// <summary>Raised when the plotted range changes, so the LU bar beside the plot can follow it.</summary>
+    public event EventHandler<(double Minimum, double Maximum)>? RangeChanged;
+
+    private (double Minimum, double Maximum)? _lastRange;
+
     public void Reset()
     {
         _history.Clear();
@@ -28,14 +33,16 @@ public sealed class LoudnessView : FrameworkElement
         Func<LoudnessHistoryPoint, float?> selected = point => LoudnessDisplayScale.SelectMetric(point, Settings.Loudness.Metric);
         var finite = points.Select(selected).Where(value => value.HasValue && float.IsFinite(value.Value)).Select(value => value!.Value).ToArray();
         var range = LoudnessDisplayScale.ResolveRange(Settings.Loudness, finite);
-        if (range is null || ActualWidth <= 1 || ActualHeight <= 1) return;
+        if (range is null || ActualWidth <= 1 || ActualHeight <= WorkspaceLayout.PlotBottomReserve + TopGutter + 1) return;
         var (minimum, maximum) = range.Value;
+        if (_lastRange != range) { _lastRange = range; RangeChanged?.Invoke(this, range.Value); }
+        var plotBottom = PlotBottom;
         var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)), 0.5);
         var timeStep = AxisTicks.LoudnessTimeStep(visibleDuration.TotalSeconds);
         foreach (var tick in AxisTicks.TimeTicks(now, visibleDuration, timeStep))
         {
             var x = ActualWidth * (1 - (tick.SecondsAgo / visibleDuration.TotalSeconds));
-            context.DrawLine(gridPen, new Point(x, TopGutter), new Point(x, ActualHeight));
+            context.DrawLine(gridPen, new Point(x, TopGutter), new Point(x, plotBottom));
             DrawLabel(context, tick.Label, x + 2, 2);
         }
         var valueStep = AxisTicks.LoudnessYStep(maximum - minimum);
@@ -84,9 +91,11 @@ public sealed class LoudnessView : FrameworkElement
         }
     }
 
-    private const double TopGutter = 16;
+    private const double TopGutter = WorkspaceLayout.LoudnessPlotTopGutter;
 
-    private double Map(double value, double min, double max) => ActualHeight - ((value - min) / (max - min) * Math.Max(1, ActualHeight - TopGutter));
+    private double PlotBottom => ActualHeight - WorkspaceLayout.PlotBottomReserve;
+
+    private double Map(double value, double min, double max) => PlotBottom - ((value - min) / (max - min) * Math.Max(1, PlotBottom - TopGutter));
 
     private void DrawLabel(DrawingContext context, string text, double x, double y) =>
         context.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,

@@ -7,25 +7,29 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <vm:ValueMatchConverter x:Key="Match" />
+        <!-- Default RadioButton ignores the window Foreground and renders black text on the dark background. -->
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#E5E7EB" />
+        </Style>
         <Style x:Key="PaneBase" TargetType="Grid">
             <Setter Property="Visibility" Value="Hidden" />
             <Setter Property="Background" Value="#080B10" />
         </Style>
     </Window.Resources>
     <Grid Margin="8">
-        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="6" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
 
-        <DockPanel Grid.Column="0" LastChildFill="True">
-            <StackPanel DockPanel.Dock="Top">
-                <TextBlock Text="AA" FontSize="22" FontWeight="Bold" />
-                <TextBlock Text="ANALYZER" FontSize="10" Foreground="#9CA3AF" Margin="0,0,0,12" />
-                <TextBlock Text="ИСТОЧНИК" Foreground="#9CA3AF" FontSize="10" />
-                <RadioButton Content="Устройство" GroupName="SourceMode" IsChecked="{Binding IsDeviceMode}" FontSize="10" />
-                <RadioButton Content="Поток" GroupName="SourceMode" IsChecked="{Binding IsStreamMode}" FontSize="10" />
-                <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" DisplayMemberPath="Name" Height="26" FontSize="10" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBox Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}" Height="26" FontSize="10" Visibility="{Binding IsStreamMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <Button Content="СТАРТ" Command="{Binding StartCommand}" Height="28" Margin="0,8,0,0">
+        <DockPanel Grid.ColumnSpan="3" Margin="0,0,0,6" Background="#10151C" LastChildFill="False">
+            <StackPanel Orientation="Horizontal" Margin="8,4" VerticalAlignment="Center">
+                <TextBlock Text="AA" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="ANALYZER" FontSize="10" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="4,3,18,0" />
+                <TextBlock Text="ИСТОЧНИК" Foreground="#9CA3AF" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <RadioButton Content="Устройство" GroupName="SourceMode" IsChecked="{Binding IsDeviceMode}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <RadioButton Content="Поток" GroupName="SourceMode" IsChecked="{Binding IsStreamMode}" FontSize="10" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" DisplayMemberPath="Name" Width="320" Height="26" VerticalContentAlignment="Center" FontSize="10" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBox Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}" Width="320" Height="26" VerticalContentAlignment="Center" FontSize="10" Visibility="{Binding IsStreamMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Content="СТАРТ" Command="{Binding StartCommand}" Width="80" Height="26" Margin="10,0,0,0">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource ToolButton}">
                             <Style.Triggers>
@@ -35,7 +39,7 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="СТОП" Command="{Binding StopCommand}" Height="24" Margin="0,4,0,8">
+                <Button Content="СТОП" Command="{Binding StopCommand}" Width="80" Height="26" Margin="4,0,0,0">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource ToolButton}">
                             <Style.Triggers>
@@ -46,10 +50,11 @@
                     </Button.Style>
                 </Button>
             </StackPanel>
-            <rendering:MeterRailView x:Name="MeterRail" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" />
         </DockPanel>
 
-        <Grid Grid.Column="2" Background="#080B10">
+        <rendering:MeterRailView Grid.Row="1" x:Name="MeterRail" Frame="{Binding LatestFrame}" Settings="{Binding MeasurementSettings}" />
+
+        <Grid Grid.Row="1" Grid.Column="2" Background="#080B10">
             <Grid.RowDefinitions><RowDefinition Height="26" /><RowDefinition Height="*" /></Grid.RowDefinitions>
             <DockPanel Background="#10151C">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -86,8 +91,6 @@
                         <RadioButton Style="{StaticResource ToolRadio}" GroupName="Metric" Content="Momentary" IsChecked="{Binding LoudnessMetric, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Momentary}" />
                         <RadioButton Style="{StaticResource ToolRadio}" GroupName="Metric" Content="Short-Term" IsChecked="{Binding LoudnessMetric, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=ShortTerm}" />
                         <RadioButton Style="{StaticResource ToolRadio}" GroupName="Metric" Content="Integrated" IsChecked="{Binding LoudnessMetric, Mode=TwoWay, Converter={StaticResource Match}, ConverterParameter=Integrated}" />
-                        <Button Style="{StaticResource ToolButton}" Content="Rolling" ToolTip="Переключить окно Integrated" Click="CycleRolling" />
-                        <Button Style="{StaticResource ToolButton}" Content="Reset" Foreground="#FF8A80" Click="ResetPane" />
                     </StackPanel>
                     <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="22" FontWeight="Bold" Foreground="#4CAF50" Text="{Binding CurrentLoudnessText}" />
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,2,0,0">
@@ -132,7 +135,7 @@
                         <TextBlock Text="{Binding RtaTargetText}" VerticalAlignment="Center" Margin="6,0" FontSize="11" Foreground="#D6DCE5" />
                         <Button Style="{StaticResource ToolButton}" Content="+" Click="RtaTargetUp" />
                     </StackPanel>
-                    <rendering:RtaView Grid.Row="1" Frame="{Binding LatestFrame}" Resolution="{Binding RtaResolution}" ChannelMode="{Binding RtaChannelMode}" Settings="{Binding MeasurementSettings}" />
+                    <rendering:RtaView x:Name="RtaView" Grid.Row="1" Frame="{Binding LatestFrame}" Resolution="{Binding RtaResolution}" ChannelMode="{Binding RtaChannelMode}" Settings="{Binding MeasurementSettings}" />
                 </Grid>
 
                 <Grid x:Name="PhasePane">
@@ -148,7 +151,7 @@
             </Grid>
         </Grid>
 
-        <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#10151C" CornerRadius="3" Padding="8,4" Margin="0,6,0,0">
+        <Border Grid.Row="2" Grid.ColumnSpan="3" Background="#10151C" CornerRadius="3" Padding="8,4" Margin="0,6,0,0">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding DiagnosticsText}" FontSize="11" Foreground="#7F8B99" Margin="12,0,0,0" />
                 <TextBlock Text="{Binding StatusText}" FontSize="11" TextTrimming="CharacterEllipsis" />

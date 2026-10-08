@@ -5,25 +5,34 @@ namespace SystemAudioAnalyzer.App.Tests;
 public sealed class AxisTicksTests
 {
     [Fact]
-    public void PeakRailDbTicksRunFromMinusFiveToMinusFiftyFiveForSixtyDbRange()
+    public void PeakRailDbTicksAreMultiplesOfThreeForSixtyDbRange()
     {
         var ticks = AxisTicks.PeakRailDb(60);
 
-        Assert.Equal(11, ticks.Count);
-        Assert.Equal("-5", ticks[0].Label);
-        Assert.Equal("-55", ticks[^1].Label);
-        Assert.Equal(55d / 60d, ticks[0].Ratio, 6);
+        Assert.Equal(19, ticks.Count);
+        Assert.Equal("-3", ticks[0].Label);
+        Assert.Equal("-57", ticks[^1].Label);
+        Assert.Equal(57d / 60d, ticks[0].Ratio, 6);
     }
 
     [Fact]
-    public void LufsLabelsAreDistancesBelowTopExcludingTheEdges()
+    public void LufsLabelsMarkEveryMultipleOfThreeIncludingTheEdges()
     {
         var ticks = AxisTicks.LufsLabels(new LufsScaleRange(0, -36, 3));
 
-        Assert.Equal(11, ticks.Count);
-        Assert.Equal("3", ticks[0].Label);
-        Assert.Equal("33", ticks[^1].Label);
-        Assert.Equal(33d / 36d, ticks[0].Ratio, 6);
+        Assert.Equal(13, ticks.Count);
+        Assert.Equal("-36", ticks[0].Label);
+        Assert.Equal("0", ticks[^1].Label);
+        Assert.Equal(0d, ticks[0].Ratio, 6);
+        Assert.Equal(1d, ticks[^1].Ratio, 6);
+    }
+
+    [Fact]
+    public void LufsLabelsSnapToMultiplesOfThreeInsideAnOddRange()
+    {
+        var ticks = AxisTicks.LufsLabels(new LufsScaleRange(-5, -17, 3));
+
+        Assert.Equal(["-15", "-12", "-9", "-6"], ticks.Select(tick => tick.Label));
     }
 
     [Fact]
@@ -46,6 +55,16 @@ public sealed class AxisTicksTests
     public void CompactFrequencyLabelsUseKiloSuffix(double hertz, string expected)
     {
         Assert.Equal(expected, AxisTicks.FormatHertz(hertz));
+    }
+
+    [Fact]
+    public void WaterfallFrequencyLabelsAreDenserThanOnePerOctave()
+    {
+        var labels = AxisTicks.WaterfallFrequencyLabels();
+
+        Assert.True(labels.Count >= 20);
+        Assert.Equal(20, labels[0].Hertz);
+        Assert.Equal(20_000, labels[^1].Hertz);
     }
 
     [Fact]

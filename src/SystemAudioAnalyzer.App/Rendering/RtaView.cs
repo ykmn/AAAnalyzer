@@ -23,6 +23,13 @@ public sealed class RtaView : FrameworkElement
     public RtaChannelMode ChannelMode { get => (RtaChannelMode)GetValue(ChannelModeProperty); set => SetValue(ChannelModeProperty, value); }
     public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
 
+    public void Reset()
+    {
+        _aggregator.Reset();
+        _bands = [];
+        InvalidateVisual();
+    }
+
     private static void OnSettingsChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         var view = (RtaView)target;

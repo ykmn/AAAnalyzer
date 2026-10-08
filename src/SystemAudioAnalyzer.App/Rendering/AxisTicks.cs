@@ -12,10 +12,10 @@ public readonly record struct TimeTick(double SecondsAgo, string Label);
 public static class AxisTicks
 {
     private static readonly double[] RtaHertz = [20, 28, 40, 56, 80, 112, 160, 224, 315, 450, 630, 900, 1_300, 1_800, 2_500, 3_600, 5_000, 7_100, 10_000, 14_000, 20_000];
-    private static readonly double[] WaterfallHertz = [20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000];
+    private static readonly double[] WaterfallHertz = [20, 30, 40, 50, 60, 80, 100, 200, 300, 400, 500, 600, 800, 1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 8_000, 10_000, 15_000, 20_000];
     private static readonly int[] TimeSteps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1_800, 3_600, 7_200, 14_400];
 
-    public static IReadOnlyList<AxisTick> PeakRailDb(double rangeDb, double stepDb = 5)
+    public static IReadOnlyList<AxisTick> PeakRailDb(double rangeDb, double stepDb = 3)
     {
         var range = Math.Max(1d, Math.Abs(rangeDb));
         var step = Math.Max(1d, stepDb);
@@ -27,16 +27,15 @@ public static class AxisTicks
         return ticks;
     }
 
-    public static IReadOnlyList<AxisTick> LufsLabels(LufsScaleRange scale)
+    /// <summary>Marks at every multiple of <paramref name="step"/> inside the scale, signed.</summary>
+    public static IReadOnlyList<AxisTick> LufsLabels(LufsScaleRange scale, double step = 3)
     {
         var span = scale.TopDb - scale.BottomDb;
-        if (!double.IsFinite(span) || span <= 0 || !double.IsFinite(scale.StepDb) || scale.StepDb <= 0) return [];
+        if (!double.IsFinite(span) || span <= 0 || step <= 0) return [];
         var ticks = new List<AxisTick>();
-        for (var index = 1; index < 1_000; index++)
+        for (var value = Math.Ceiling(scale.BottomDb / step) * step; value <= scale.TopDb + 1e-9 && ticks.Count < 1_000; value += step)
         {
-            var value = scale.TopDb - (index * scale.StepDb);
-            if (value <= scale.BottomDb + 1e-9) break;
-            ticks.Add(new AxisTick(value, (value - scale.BottomDb) / span, Math.Abs(value).ToString("0", CultureInfo.InvariantCulture)));
+            ticks.Add(new AxisTick(value, (value - scale.BottomDb) / span, value.ToString("0", CultureInfo.InvariantCulture)));
         }
         return ticks;
     }

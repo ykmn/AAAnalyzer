@@ -1,5 +1,6 @@
 using System.Windows;
 using SystemAudioAnalyzer.App.Rendering;
+using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Tests;
 
@@ -84,5 +85,28 @@ public sealed class MeterRailLayoutTests
 
         Assert.Null(layout.HitTest(new Point(layout.LeftMeter.Left + 2, layout.LeftMeter.Top + 40)));
         Assert.Null(layout.HitTest(new Point(layout.LufsMeter.Left + 2, layout.LufsMeter.Top + 40)));
+    }
+
+    [Fact]
+    public void MetersSpanTheSameVerticalExtentAsTheLoudnessPlot()
+    {
+        const double height = 520;
+        var layout = MeterRailLayout.Calculate(WorkspaceLayout.PeakRailWidth, height);
+
+        Assert.Equal(WorkspaceLayout.PlotTop, layout.LeftMeter.Top);
+        Assert.Equal(height - WorkspaceLayout.PlotBottomReserve, layout.LeftMeter.Bottom, 6);
+        Assert.Equal(layout.LeftMeter.Top, layout.LufsMeter.Top);
+        Assert.Equal(layout.LeftMeter.Bottom, layout.LufsMeter.Bottom, 6);
+    }
+
+    [Fact]
+    public void LufsRangeFollowsTheLoudnessPlot()
+    {
+        var fixedScale = MeasurementSettings.Default with { Loudness = MeasurementSettings.Default.Loudness with { AutoScale = false, SpanLufs = 12, CentreLufs = -20 } };
+        var auto = MeasurementSettings.Default with { Loudness = MeasurementSettings.Default.Loudness with { AutoScale = true } };
+
+        Assert.Equal(new LufsScaleRange(-14, -26, 3), MeterRailLayout.ResolveLufsRange(fixedScale, null));
+        Assert.Equal(new LufsScaleRange(-10, -25, 3), MeterRailLayout.ResolveLufsRange(auto, (-25, -10)));
+        Assert.Equal(new LufsScaleRange(0, -36, 3), MeterRailLayout.ResolveLufsRange(auto, null));
     }
 }

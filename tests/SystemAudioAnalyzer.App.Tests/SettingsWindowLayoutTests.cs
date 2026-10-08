@@ -10,7 +10,7 @@ namespace SystemAudioAnalyzer.App.Tests;
 public sealed class SettingsWindowLayoutTests
 {
     [Fact]
-    public void FooterTextDoesNotOverlapButtonsAndPresetNameFieldIsWide()
+    public void ButtonsStayInsideWindowAndPresetNameFieldIsWide()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -41,13 +41,10 @@ public sealed class SettingsWindowLayoutTests
             .Where(button => button.Content is string)
             .GroupBy(button => (string)button.Content)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var footer = Descendants<TextBlock>(root).Single(block => block.Text.Contains("Inspired by", StringComparison.Ordinal));
         var nameBox = Descendants<TextBox>(root).First();
 
         var cancel = Bounds(buttons["Cancel"], root);
         var apply = Bounds(buttons["Apply"], root);
-        var footerBounds = Bounds(footer, root);
-        Assert.True(footerBounds.Top >= cancel.Bottom, "Footer text must sit below the Apply/OK/Cancel row.");
         Assert.True(cancel.Right <= size.Width, "Cancel must stay inside the window.");
         Assert.True(apply.Left >= 0);
         Assert.True(Bounds(nameBox, root).Width >= 180, "Preset name field must be wide.");

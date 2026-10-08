@@ -21,6 +21,20 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
         return Math.Clamp((levelDb + rangeDb) / rangeDb, 0d, 1d);
     }
 
+    public static string LufsCaptionText(LoudnessMetric metric) => metric switch
+    {
+        LoudnessMetric.Momentary => "M LUFS",
+        LoudnessMetric.ShortTerm => "S LUFS",
+        _ => "I LUFS",
+    };
+
+    /// <summary>The LU bar follows the Loudness plot: a fixed plot range is read from settings, an automatic one from the plot itself.</summary>
+    public static LufsScaleRange ResolveLufsRange(MeasurementSettings settings, (double Minimum, double Maximum)? plotRange)
+    {
+        var range = settings.Loudness.AutoScale ? plotRange : LoudnessDisplayScale.ResolveRange(settings.Loudness, []);
+        return range is { } r ? new LufsScaleRange(r.Maximum, r.Minimum, 3d) : ResolveLufsScale(settings.Meters);
+    }
+
     public static float? SelectLoudness(LoudnessMeasurement? measurement, LoudnessMetric metric)
     {
         if (measurement is null) return null;
@@ -72,26 +86,31 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
     public static MeterRailLayout Calculate(double width, double height)
     {
         const double edge = 2d, scaleWidth = 26d, gap = 2d, lufsGap = 4d, lufsWidth = 14d, lufsScaleWidth = 22d;
-        const double rowHeight = 14d, peakRowHeight = 12d, overloadHeight = 8d, readoutHeight = 22d, bottomReserve = 54d;
+        const double rowHeight = 14d, peakRowHeight = 12d, overloadHeight = 8d, readoutHeight = 22d;
+        const double bottomReserve = WorkspaceLayout.PlotBottomReserve;
         var fixedWidth = (edge * 2) + scaleWidth + (gap * 2) + lufsGap + lufsWidth + lufsScaleWidth;
         var barWidth = Math.Max(1d, (width - fixedWidth) / 2d);
         var scaleX = edge;
         var leftX = scaleX + scaleWidth + gap;
         var rightX = leftX + barWidth + gap;
         var lufsX = rightX + barWidth + lufsGap;
-        var meterTop = Math.Min(40d, Math.Max(0d, height));
+        var meterTop = Math.Min(WorkspaceLayout.PlotTop, Math.Max(0d, height));
         var meterHeight = Math.Max(1d, height - meterTop - bottomReserve);
+        // Readouts stack directly above the bars: MAX, NOW, then the overload lamp.
+        var overloadY = meterTop - overloadHeight - 2d;
+        var currentY = overloadY - peakRowHeight - 1d;
+        var maximumY = currentY - peakRowHeight - 1d;
         var labels = new Rect(edge, meterTop + meterHeight + 2d, Math.Max(1d, width - (edge * 2)), rowHeight);
         var readout = new Rect(0, labels.Bottom, Math.Max(1d, width), readoutHeight);
         return new MeterRailLayout(
-            new Rect(leftX, 2, barWidth, peakRowHeight), new Rect(rightX, 2, barWidth, peakRowHeight),
-            new Rect(leftX, 29, barWidth, overloadHeight), new Rect(rightX, 29, barWidth, overloadHeight),
+            new Rect(leftX, maximumY, barWidth, peakRowHeight), new Rect(rightX, maximumY, barWidth, peakRowHeight),
+            new Rect(leftX, overloadY, barWidth, overloadHeight), new Rect(rightX, overloadY, barWidth, overloadHeight),
             new Rect(leftX, meterTop, barWidth, meterHeight), new Rect(rightX, meterTop, barWidth, meterHeight),
             new Rect(scaleX, meterTop, scaleWidth, meterHeight),
             new Rect(lufsX, meterTop, lufsWidth, meterHeight),
             new Rect(lufsX + lufsWidth, meterTop, lufsScaleWidth, meterHeight),
             labels, readout, new Rect(0, readout.Bottom, Math.Max(1d, width), rowHeight),
-            new Rect(leftX, 15, barWidth, peakRowHeight), new Rect(rightX, 15, barWidth, peakRowHeight));
+            new Rect(leftX, currentY, barWidth, peakRowHeight), new Rect(rightX, currentY, barWidth, peakRowHeight));
     }
 
     /// <summary>Clicks on either channel's readouts or overload lamp reset that value for both channels.</summary>

@@ -38,8 +38,13 @@ public static class ToolbarSettingsActions
         return string.Create(CultureInfo.InvariantCulture, $"{settings.Loudness.CentreLufs - half:0.#}..{settings.Loudness.CentreLufs + half:0.#}");
     }
 
-    public static MeasurementSettings WithRtaAveraging(MeasurementSettings settings, int delta) =>
-        settings with { Rta = settings.Rta with { AveragingCount = Math.Clamp(settings.Rta.AveragingCount + delta, 1, 1_000) } };
+    /// <summary>Steps the averaging by <paramref name="delta"/>; above 1 the count stays a multiple of 10 (1, 10, 20, ...).</summary>
+    public static MeasurementSettings WithRtaAveraging(MeasurementSettings settings, int delta)
+    {
+        var count = Math.Clamp(settings.Rta.AveragingCount + delta, 1, 1_000);
+        if (count > 1) count = Math.Max(10, count / 10 * 10);
+        return settings with { Rta = settings.Rta with { AveragingCount = count } };
+    }
 
     public static MeasurementSettings WithRtaTarget(MeasurementSettings settings, double deltaDb)
     {
