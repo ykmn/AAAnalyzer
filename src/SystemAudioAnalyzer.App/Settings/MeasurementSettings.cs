@@ -14,7 +14,7 @@ public sealed record MeasurementSettings(
 {
     public static MeasurementSettings Default { get; } = new(
         new AnalyzerSettings(-130, "#FFFFFF", "#FFFFFF"),
-        new WaterfallSettings(-110, 0, "#06B6D4"),
+        new WaterfallSettings(-110, 0),
         new MeterSettings(-60, "#22C55E", "#EF4444"),
         new LoudnessDisplaySettings(60, LoudnessMetric.Integrated, true, 6, -11),
         new RtaDisplaySettings(RtaChannelMode.Mono, RtaResolution.OneTwelfth, 0, 60, -36),
@@ -31,15 +31,15 @@ public sealed record AnalyzerSettings([property: JsonRequired] double DisplayFlo
     public double Gain { get; init; } = 1;
 }
 
-public sealed record WaterfallSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] double DisplayOffsetDb, [property: JsonRequired] string PaletteColor)
+public sealed record WaterfallSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] double DisplayOffsetDb)
 {
     public ImmutableArray<ColorStop> GradientStops { get; init; } = [new(-110, "#000000"), new(-80, "#2F6FD6"), new(-55, "#2FA84F"), new(-45, "#E0C93A"), new(-25, "#D6392F")];
 
     public bool Equals(WaterfallSettings? other) => other is not null
         && DisplayFloorDb.Equals(other.DisplayFloorDb) && DisplayOffsetDb.Equals(other.DisplayOffsetDb)
-        && PaletteColor == other.PaletteColor && ColorStopEquality.Equals(GradientStops, other.GradientStops);
+        && ColorStopEquality.Equals(GradientStops, other.GradientStops);
 
-    public override int GetHashCode() => HashCode.Combine(DisplayFloorDb, DisplayOffsetDb, PaletteColor, ColorStopEquality.GetHashCode(GradientStops));
+    public override int GetHashCode() => HashCode.Combine(DisplayFloorDb, DisplayOffsetDb, ColorStopEquality.GetHashCode(GradientStops));
 }
 
 public sealed record MeterSettings([property: JsonRequired] double DisplayRangeDb, [property: JsonRequired] string MeterColor, [property: JsonRequired] string OverloadColor)

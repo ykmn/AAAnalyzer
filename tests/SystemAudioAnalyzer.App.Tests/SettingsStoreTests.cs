@@ -292,7 +292,6 @@ public sealed class SettingsStoreTests
         Assert.Equal("#445566", settings.Analyzer.TextColor);
         Assert.Equal(-95, settings.Waterfall.DisplayFloorDb);
         Assert.Equal(7, settings.Waterfall.DisplayOffsetDb);
-        Assert.Equal("#123456", settings.Waterfall.PaletteColor);
         Assert.Equal(-72, settings.Meters.DisplayRangeDb);
         Assert.Equal("#234567", settings.Meters.MeterColor);
         Assert.Equal("#345678", settings.Meters.OverloadColor);
@@ -327,7 +326,6 @@ public sealed class SettingsStoreTests
         var loaded = await store.LoadStartupSettingsAsync();
         Assert.Equal(-85, loaded.Waterfall.DisplayFloorDb);
         Assert.Equal(0, loaded.Waterfall.DisplayOffsetDb);
-        Assert.Equal("#06B6D4", loaded.Waterfall.PaletteColor);
         Assert.Equal(1, loaded.Phase.Gain);
         Assert.Equal(RtaChannelMode.Mono, loaded.Rta.Source);
         Assert.Equal(80, loaded.Rta.ScaleRangeDb);

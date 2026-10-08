@@ -58,7 +58,6 @@ public static class MeasurementSettingsValidator
         {
             Finite(waterfall.DisplayFloorDb, "Waterfall.DisplayFloorDb");
             Finite(waterfall.DisplayOffsetDb, "Waterfall.DisplayOffsetDb");
-            Color(waterfall.PaletteColor, "Waterfall.PaletteColor");
             Gradient(waterfall.GradientStops, "Waterfall.GradientStops");
         }
         if (settings.Meters is not { } meters) Check(false, nameof(settings.Meters));

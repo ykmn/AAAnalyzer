@@ -148,7 +148,6 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
 
     public double WaterfallFloorDb { get => Current.Waterfall.DisplayFloorDb; set => Update(waterfall: Current.Waterfall with { DisplayFloorDb = value }); }
     public double WaterfallOffsetDb { get => Current.Waterfall.DisplayOffsetDb; set => Update(waterfall: Current.Waterfall with { DisplayOffsetDb = value }); }
-    public string WaterfallPaletteColor { get => Current.Waterfall.PaletteColor; set => Update(waterfall: Current.Waterfall with { PaletteColor = value ?? string.Empty }); }
 
     public double MeterAttackMs { get => Current.Meters.AttackMs; set => Update(meters: Current.Meters with { AttackMs = value }); }
     public double MeterReleaseMs { get => Current.Meters.ReleaseMs; set => Update(meters: Current.Meters with { ReleaseMs = value }); }

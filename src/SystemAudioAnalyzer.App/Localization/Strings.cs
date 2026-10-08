@@ -96,7 +96,6 @@ internal static class Strings
         ["TextColor"] = ("Text color:", "Цвет текста:"),
         ["DisplayFloor"] = ("Display floor (dB):", "Нижний порог (дБ):"),
         ["DisplayOffset"] = ("Display offset (dB):", "Смещение (дБ):"),
-        ["PaletteColor"] = ("Palette color:", "Цвет палитры:"),
         ["GradientDb"] = ("Gradient stops (dB):", "Пороги градиента (дБ):"),
         ["StopLevelDb"] = ("Level (dB):", "Уровень (дБ):"),
         ["StopLevelLufs"] = ("Level (LUFS):", "Уровень (LUFS):"),

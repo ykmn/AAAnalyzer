@@ -97,7 +97,7 @@ public sealed class SettingsStore
             var fields = new Dictionary<string, string[]>
             {
                 ["Analyzer"] = ["DisplayFloorDb", "CursorColor", "TextColor"],
-                ["Waterfall"] = ["DisplayFloorDb", "DisplayOffsetDb", "PaletteColor"],
+                ["Waterfall"] = ["DisplayFloorDb", "DisplayOffsetDb"],
                 ["Meters"] = ["DisplayRangeDb", "MeterColor", "OverloadColor"],
                 ["Loudness"] = ["HistorySeconds", "Metric", "AutoScale", "SpanLufs", "CentreLufs"],
                 ["Rta"] = ["Source", "Resolution", "ScaleTopDb", "ScaleRangeDb", "TargetLineDb"],

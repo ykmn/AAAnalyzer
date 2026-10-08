@@ -134,7 +134,6 @@ public partial class SettingsWindow : Window
         {
             case nameof(SettingsDialogViewModel.AnalyzerCursorColor): _viewModel.AnalyzerCursorColor = selected; break;
             case nameof(SettingsDialogViewModel.AnalyzerTextColor): _viewModel.AnalyzerTextColor = selected; break;
-            case nameof(SettingsDialogViewModel.WaterfallPaletteColor): _viewModel.WaterfallPaletteColor = selected; break;
             case nameof(SettingsDialogViewModel.PeakColor): _viewModel.PeakColor = selected; break;
             case nameof(SettingsDialogViewModel.RmsColor): _viewModel.RmsColor = selected; break;
             case nameof(SettingsDialogViewModel.LufsColor): _viewModel.LufsColor = selected; break;
@@ -151,7 +150,6 @@ public partial class SettingsWindow : Window
     {
         nameof(SettingsDialogViewModel.AnalyzerCursorColor) => _viewModel.AnalyzerCursorColor,
         nameof(SettingsDialogViewModel.AnalyzerTextColor) => _viewModel.AnalyzerTextColor,
-        nameof(SettingsDialogViewModel.WaterfallPaletteColor) => _viewModel.WaterfallPaletteColor,
         nameof(SettingsDialogViewModel.PeakColor) => _viewModel.PeakColor,
         nameof(SettingsDialogViewModel.RmsColor) => _viewModel.RmsColor,
         nameof(SettingsDialogViewModel.LufsColor) => _viewModel.LufsColor,

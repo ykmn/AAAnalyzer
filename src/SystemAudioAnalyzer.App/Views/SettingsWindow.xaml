@@ -39,7 +39,6 @@
             <TabItem Header="{loc:Tr Tab_Waterfall}"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
                 <DockPanel><TextBlock Text="{loc:Tr DisplayFloor}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding WaterfallFloorDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr DisplayOffset}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding WaterfallOffsetDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
-                <DockPanel Margin="0,6,0,4"><TextBlock Text="{loc:Tr PaletteColor}" Width="190" TextWrapping="Wrap"/><Button Tag="WaterfallPaletteColor" Background="{Binding WaterfallPaletteColor}" Click="PickColor" Width="60" Height="23" HorizontalAlignment="Left"/></DockPanel>
                 <TextBlock Text="{loc:Tr GradientDb}" Margin="0,6,0,2"/>
                 <ListBox ItemsSource="{Binding GradientStops}" SelectedItem="{Binding SelectedGradientStop}" Height="170">
                     <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="2"><Border Width="32" Height="16" Background="{Binding Color}" BorderBrush="#555" BorderThickness="1" Margin="0,0,8,0"/><TextBlock VerticalAlignment="Center"><Run Text="{Binding LevelDb, Mode=OneWay, StringFormat={}{0:G}}"/><Run Text="{loc:Tr UnitDb}"/></TextBlock></DockPanel></DataTemplate></ListBox.ItemTemplate>

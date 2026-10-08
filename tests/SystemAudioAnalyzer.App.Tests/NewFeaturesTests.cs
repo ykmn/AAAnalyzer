@@ -143,23 +143,16 @@ public sealed class LocalizationTests
     [Fact]
     public void SwitchingLanguageChangesTextsAndRaisesTheEvent()
     {
-        var localizer = SystemAudioAnalyzer.App.Localization.Localizer.Instance;
+        // A private instance: the shared one is read by tests that run in parallel.
+        var localizer = new SystemAudioAnalyzer.App.Localization.Localizer();
         var raised = 0;
-        EventHandler handler = (_, _) => raised++;
-        localizer.LanguageChanged += handler;
-        try
-        {
-            localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.Russian;
-            Assert.Equal("Настройки", localizer["SettingsTitle"]);
-            localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.English;
-            Assert.Equal("Settings", localizer["SettingsTitle"]);
-            Assert.Equal(2, raised);
-        }
-        finally
-        {
-            localizer.LanguageChanged -= handler;
-            localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.English;
-        }
+        localizer.LanguageChanged += (_, _) => raised++;
+
+        localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.Russian;
+        Assert.Equal("Настройки", localizer["SettingsTitle"]);
+        localizer.Language = SystemAudioAnalyzer.App.Localization.AppLanguage.English;
+        Assert.Equal("Settings", localizer["SettingsTitle"]);
+        Assert.Equal(2, raised);
     }
 
     [Fact]
@@ -171,5 +164,24 @@ public sealed class LocalizationTests
         preferences.SaveLanguage(SystemAudioAnalyzer.App.Localization.AppLanguage.Russian);
 
         Assert.Equal(SystemAudioAnalyzer.App.Localization.AppLanguage.Russian, new SystemAudioAnalyzer.App.Localization.AppPreferences(directory).LoadLanguage());
+    }
+}
+
+public sealed class ProfileCompatibilityTests
+{
+    [Fact]
+    public async Task ProfilesSavedWithTheRemovedPaletteColorStillLoad()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "AAAnalyzerTests", Guid.NewGuid().ToString("N"));
+        var store = new SystemAudioAnalyzer.App.Settings.SettingsStore(directory, null, Path.Combine(directory, "legacy.json"));
+        await store.SaveCatalogAsync(SystemAudioAnalyzer.App.Settings.SettingsProfileCatalog.Default);
+        var json = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(store.CatalogPath))!;
+        foreach (var profile in json["Profiles"]!.AsArray()) profile!["Settings"]!["Waterfall"]!["PaletteColor"] = "#06B6D4";
+        await File.WriteAllTextAsync(store.CatalogPath, json.ToJsonString());
+
+        var loaded = await store.LoadCatalogAsync();
+
+        Assert.Equal("Default", loaded.Profiles[0].Name);
+        Assert.Equal(-110, loaded.Profiles[0].Settings.Waterfall.DisplayFloorDb);
     }
 }
