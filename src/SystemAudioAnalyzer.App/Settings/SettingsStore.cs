@@ -8,7 +8,7 @@ namespace SystemAudioAnalyzer.App.Settings;
 public sealed class SettingsStore
 {
     // Added after profiles.json files already existed; a missing value takes its default instead of discarding the catalog.
-    private static readonly HashSet<string> OptionalProperties = ["TargetLufs"];
+    private static readonly HashSet<string> OptionalProperties = ["TargetLufs", "TargetRangeLu"];
     private readonly string _settingsDirectory;
     private readonly Action<string>? _diagnostic;
     private readonly string _legacySettingsPath;

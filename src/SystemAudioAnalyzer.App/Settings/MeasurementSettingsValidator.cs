@@ -90,6 +90,7 @@ public static class MeasurementSettingsValidator
             Positive(loudness.SpanLufs, "Loudness.SpanLufs");
             Finite(loudness.CentreLufs, "Loudness.CentreLufs");
             Finite(loudness.TargetLufs, "Loudness.TargetLufs");
+            NonNegative(loudness.TargetRangeLu, "Loudness.TargetRangeLu");
             Gradient(loudness.GradientStops, "Loudness.GradientStops");
         }
         if (settings.Rta is not { } rta) Check(false, nameof(settings.Rta));

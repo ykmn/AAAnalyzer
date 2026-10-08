@@ -73,6 +73,7 @@
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Y span (LUFS):" Width="190"/><TextBox Text="{Binding LoudnessSpan, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Y center (LUFS):" Width="190"/><TextBox Text="{Binding LoudnessCentre, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Target line (LU):" Width="190"/><TextBox Text="{Binding LoudnessTarget, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Target range (± LU):" Width="190"/><TextBox Text="{Binding LoudnessTargetRange, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <TextBlock Text="Color gradient (LUFS stops):" Margin="0,7,0,2"/>
                 <ListBox ItemsSource="{Binding GradientStops}" SelectedItem="{Binding SelectedGradientStop}" Height="150">
                     <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="2"><Border Width="32" Height="16" Background="{Binding Color}" BorderBrush="#555" BorderThickness="1" Margin="0,0,8,0"/><TextBlock Text="{Binding LevelDb, StringFormat={}{0:G} LUFS}" VerticalAlignment="Center"/></DockPanel></DataTemplate></ListBox.ItemTemplate>

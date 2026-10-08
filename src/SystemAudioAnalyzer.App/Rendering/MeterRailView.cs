@@ -133,6 +133,9 @@ public sealed class MeterRailView : FrameworkElement
                 DrawText(context, tick.Label, new Rect(layout.LufsScale.Left + 3, y - 6, layout.LufsScale.Width - 3, 12), fontSize - 1, dimText, TextAlignment.Left);
             }
             var target = Settings.Loudness.TargetLufs;
+            var bandTop = column.Bottom - (MeterRailLayout.CalculateLufsRatio(target + Settings.Loudness.TargetRangeLu, lufsScale) * column.Height);
+            var bandBottom = column.Bottom - (MeterRailLayout.CalculateLufsRatio(target - Settings.Loudness.TargetRangeLu, lufsScale) * column.Height);
+            context.DrawRectangle(new SolidColorBrush(Color.FromArgb(110, 255, 138, 128)), null, new Rect(column.Left + 1, bandTop, column.Width - 2, Math.Max(0, bandBottom - bandTop)));
             if (target >= lufsScale.BottomDb && target <= lufsScale.TopDb)
             {
                 var targetY = column.Bottom - (MeterRailLayout.CalculateLufsRatio(target, lufsScale) * column.Height);

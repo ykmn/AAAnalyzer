@@ -60,9 +60,16 @@ public sealed class LoudnessView : FrameworkElement
     private void DrawTarget(DrawingContext context, double minimum, double maximum)
     {
         var target = Settings.Loudness.TargetLufs;
-        if (target < minimum || target > maximum) return;
+        var visibleRange = Settings.Loudness.TargetRangeLu;
+        if (target + visibleRange < minimum || target - visibleRange > maximum) return;
         var y = Map(target, minimum, maximum);
         var brush = new SolidColorBrush(Color.FromRgb(255, 138, 128));
+        // The tolerance band, like the RTA target band, drawn behind the series.
+        var range = Settings.Loudness.TargetRangeLu;
+        var top = Map(Math.Min(maximum, target + range), minimum, maximum);
+        var bottom = Map(Math.Max(minimum, target - range), minimum, maximum);
+        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(150, 0x5C, 0x12, 0x12)), null, new Rect(0, top, ActualWidth, Math.Max(0, bottom - top)));
+        if (target < minimum || target > maximum) return;
         context.DrawLine(new Pen(brush, 1) { DashStyle = DashStyles.Dash }, new Point(0, y), new Point(ActualWidth, y));
         var text = new FormattedText($"Target {target:0} LU", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface("Segoe UI"), 10, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);

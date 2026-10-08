@@ -6,7 +6,6 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
 {
     private const uint SampleRate = 48_000;
     private const uint Channels = 2;
-    private LibVLC? _libVlc;
     private Media? _media;
     private LibVLCSharp.Shared.MediaPlayer? _mediaPlayer;
     private bool _disposed;
@@ -31,14 +30,14 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
     {
         StopAndDisposePlayer();
 
-        LibVLCSharp.Shared.Core.Initialize();
-        _libVlc = new LibVLC($"--network-caching={networkCachingMilliseconds}");
-        _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVlc);
+        var libVlc = LibVlcRuntime.GetAsync().GetAwaiter().GetResult();
+        _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(libVlc);
         _mediaPlayer.Buffering += OnBuffering;
         _mediaPlayer.EncounteredError += OnEncounteredError;
         _mediaPlayer.SetAudioFormat("S16N", SampleRate, Channels);
         _mediaPlayer.SetAudioCallbacks(OnAudioPlay, null, null, null, null);
-        _media = new Media(_libVlc, streamUri);
+        _media = new Media(libVlc, streamUri);
+        _media.AddOption($":network-caching={networkCachingMilliseconds}");
 
         if (!_mediaPlayer.Play(_media))
         {
@@ -98,8 +97,6 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
 
         _media?.Dispose();
         _media = null;
-        _libVlc?.Dispose();
-        _libVlc = null;
     }
 
     private void ThrowIfDisposed()

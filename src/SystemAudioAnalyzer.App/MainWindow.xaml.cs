@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private readonly StreamHistoryStore _streamHistoryStore;
     public MainWindow()
     {
+        Sources.LibVlcRuntime.WarmUp(exception => _logger.Write(exception));
         InitializeComponent();
         MeterRail.ResetRequested += ResetMeterRailValue;
         LoudnessView.RangeChanged += (_, range) => Dispatcher.BeginInvoke(() => MeterRail.LoudnessRange = range);

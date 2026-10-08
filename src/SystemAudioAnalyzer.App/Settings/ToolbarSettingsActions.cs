@@ -74,6 +74,7 @@ public static class ToolbarSettingsActions
             SpanLufs = source.Loudness.SpanLufs,
             CentreLufs = source.Loudness.CentreLufs,
             TargetLufs = source.Loudness.TargetLufs,
+            TargetRangeLu = source.Loudness.TargetRangeLu,
         },
         Meters = target.Meters with { IntegratedWindowSeconds = source.Meters.IntegratedWindowSeconds },
     };
