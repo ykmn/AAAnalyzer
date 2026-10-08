@@ -6,6 +6,7 @@ work/
 .superpowers/
 docs/superpowers/
 release/AAAnalyzer-*/
+reference screenshots/
 *.user
 temp/
 TODO.md
