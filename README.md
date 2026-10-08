@@ -29,11 +29,11 @@
   - Target line: (по умолчанию −23 LU) с полосой допуска ±3 LU.
   - Расчёт: по ITU-R BS.1770 (K-взвешивание, абсолютный и относительный пороги).
 
-![Waterfall](screenshots/AAAnalyzer-LoudnessM.png)
+![Loudness: Momentary](screenshots/AAAnalyzer-LoudnessM.png)
 
-![Waterfall](screenshots/AAAnalyzer-LoudnessS.png)
+![Loudness: Short-term](screenshots/AAAnalyzer-LoudnessS.png)
 
-![Waterfall](screenshots/AAAnalyzer-LoudnessI.png)
+![Loudness: Integrated](screenshots/AAAnalyzer-LoudnessI.png)
 
 - **RTA** — спектр-анализатор
   - полосы 1/1, 1/3, 1/6, 1/12 октавы
@@ -41,11 +41,11 @@
   - усреднение (1, 10, 20, …).
   - Target line: (по умолчанию −23 LU) с полосой допуска ±3 LU
 
-![Waterfall](screenshots/AAAnalyzer-RTA.png)
+![RTA](screenshots/AAAnalyzer-RTA.png)
 
 - **Phase** — фазоскоп с регулировкой усиления.
 
-![Waterfall](screenshots/AAAnalyzer-Phase.png)
+![Phase](screenshots/AAAnalyzer-Phase.png)
 
 Кнопки в строке вкладок: **СБРОС** (все измерения и графики), **PNG**
 (скриншот текущей вкладки в `Screenshots\`), **НАСТРОЙКИ**.
