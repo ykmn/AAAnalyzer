@@ -88,7 +88,7 @@
                 <DockPanel><TextBlock Text="Source:" Width="190"/><ComboBox ItemsSource="{Binding RtaSourceOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RtaSource}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Resolution:" Width="190"/><ComboBox ItemsSource="{Binding RtaResolutionOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RtaResolution}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Averages (1–1000):" Width="190"/><TextBox Text="{Binding RtaAveragingCount, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
-                <DockPanel Margin="0,6,0,0"><TextBlock Text="Tilt, dB/oct:" Width="190"/><TextBox Text="{Binding RtaTiltDbPerOctave, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="Tilt, dB/oct (0 = real levels, +3 = flat for pink noise):" Width="190" TextWrapping="Wrap" ToolTip="0: уровни как есть. +3: компенсация спада 3 дБ/окт относительно 1 кГц — розовый шум выглядит ровным."/><TextBox Text="{Binding RtaTiltDbPerOctave, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Release, dB/sec:" Width="190"/><TextBox Text="{Binding RtaReleaseDbPerSecond, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Scale top, dB:" Width="190"/><TextBox Text="{Binding RtaScaleTop, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="Scale range, dB:" Width="190"/><TextBox Text="{Binding RtaScaleRange, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>

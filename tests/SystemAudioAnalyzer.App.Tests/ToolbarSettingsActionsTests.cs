@@ -83,6 +83,16 @@ public sealed class ToolbarSettingsActionsTests
     }
 
     [Fact]
+    public void TiltButtonFlipsBetweenRealLevelsAndPinkNoiseCompensation()
+    {
+        var pink = ToolbarSettingsActions.ToggleRtaTilt(Defaults);
+
+        Assert.Equal(0, Defaults.Rta.TiltDbPerOctave);
+        Assert.Equal(3, pink.Rta.TiltDbPerOctave);
+        Assert.Equal(0, ToolbarSettingsActions.ToggleRtaTilt(pink).Rta.TiltDbPerOctave);
+    }
+
+    [Fact]
     public void RtaTargetStaysInsideTheScale()
     {
         Assert.Equal(-35, ToolbarSettingsActions.WithRtaTarget(Defaults, 1).Rta.TargetLineDb);
@@ -113,7 +123,7 @@ public sealed class ToolbarSettingsActionsTests
         Assert.Equal(12, profile.Loudness.SpanLufs);
         Assert.Equal(-20, profile.Loudness.CentreLufs);
         Assert.Equal(1_800, profile.Meters.IntegratedWindowSeconds);
-        Assert.Equal(Defaults.Rta.TiltDbPerOctave, profile.Rta.TiltDbPerOctave);
+        Assert.Equal(3, profile.Rta.TiltDbPerOctave);
         Assert.Equal(Defaults.Meters.AttackMs, profile.Meters.AttackMs);
         Assert.Equal(Defaults.Analyzer, profile.Analyzer);
     }

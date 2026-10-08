@@ -275,6 +275,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(LoudnessScaleText));
                 OnPropertyChanged(nameof(RtaAverageText));
                 OnPropertyChanged(nameof(RtaTargetText));
+                OnPropertyChanged(nameof(RtaTiltText));
                 OnPropertyChanged(nameof(LoudnessTargetText));
             }
         }
@@ -296,6 +297,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string LoudnessTargetText => $"Tgt {MeasurementSettings.Loudness.TargetLufs:0}";
 
+    public string RtaTiltText => MeasurementSettings.Rta.TiltDbPerOctave == 0 ? "Tilt 0" : $"Tilt {MeasurementSettings.Rta.TiltDbPerOctave:+0.##;-0.##}";
+
     public string RtaAverageText => $"Avg {MeasurementSettings.Rta.AveragingCount}";
 
     public string RtaTargetText => $"Tgt {MeasurementSettings.Rta.TargetLineDb:0}";
@@ -305,6 +308,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ShiftLoudness(double deltaLufs) => ApplyToolbarChange(settings => ToolbarSettingsActions.ShiftLoudness(settings, deltaLufs));
 
     public void AdjustLoudnessTarget(double deltaLufs) => ApplyToolbarChange(settings => ToolbarSettingsActions.WithLoudnessTarget(settings, deltaLufs));
+
+    public void ToggleRtaTilt() => ApplyToolbarChange(ToolbarSettingsActions.ToggleRtaTilt);
 
     public void CycleRollingWindow() => ApplyToolbarChange(ToolbarSettingsActions.CycleRollingWindow);
 

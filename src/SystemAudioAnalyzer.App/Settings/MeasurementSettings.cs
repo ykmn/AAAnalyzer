@@ -23,7 +23,8 @@ public sealed record MeasurementSettings(
 
 public sealed record AnalyzerSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] string CursorColor, [property: JsonRequired] string TextColor)
 {
-    public int FftSize { get; init; } = 2048;
+    // 8192 resolves the low 1/12-octave bands; 2048 smears energy from 100-200 Hz into everything below.
+    public int FftSize { get; init; } = 8192;
     public AnalyzerWindowFunction WindowFunction { get; init; } = AnalyzerWindowFunction.Blackman;
     public AnalyzerFrequencyScale FrequencyScale { get; init; } = AnalyzerFrequencyScale.Linear;
     public AnalyzerAmplitudeScale AmplitudeScale { get; init; } = AnalyzerAmplitudeScale.Logarithmic;

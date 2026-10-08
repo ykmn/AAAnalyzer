@@ -49,6 +49,12 @@ public static class ToolbarSettingsActions
         return settings with { Rta = settings.Rta with { AveragingCount = count } };
     }
 
+    /// <summary>The tilt button flips between real levels (0) and pink-noise compensation (+3 dB/oct).</summary>
+    public static MeasurementSettings ToggleRtaTilt(MeasurementSettings settings) =>
+        settings with { Rta = settings.Rta with { TiltDbPerOctave = settings.Rta.TiltDbPerOctave == 0 ? PinkNoiseTiltDbPerOctave : 0 } };
+
+    public const double PinkNoiseTiltDbPerOctave = 3;
+
     public static MeasurementSettings WithRtaTarget(MeasurementSettings settings, double deltaDb)
     {
         var rta = settings.Rta;
@@ -64,6 +70,7 @@ public static class ToolbarSettingsActions
             Source = source.Rta.Source,
             Resolution = source.Rta.Resolution,
             AveragingCount = source.Rta.AveragingCount,
+            TiltDbPerOctave = source.Rta.TiltDbPerOctave,
             TargetLineDb = source.Rta.TargetLineDb,
         },
         Loudness = target.Loudness with

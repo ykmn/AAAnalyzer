@@ -11,7 +11,7 @@ public sealed class MeasurementSettingsValidatorTests
     public void ReferenceDefaultsAreValid()
     {
         var settings = MeasurementSettings.Default;
-        Assert.Equal(2048, settings.Analyzer.FftSize);
+        Assert.Equal(8192, settings.Analyzer.FftSize);
         Assert.Equal(AnalyzerWindowFunction.Blackman, settings.Analyzer.WindowFunction);
         Assert.Equal(AnalyzerFrequencyScale.Linear, settings.Analyzer.FrequencyScale);
         Assert.Equal(AnalyzerAmplitudeScale.Logarithmic, settings.Analyzer.AmplitudeScale);

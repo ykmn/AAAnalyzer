@@ -70,6 +70,8 @@ public partial class MainWindow : Window
 
     private void RtaAverageUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaAveraging(10);
 
+    private void RtaTiltToggle(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ToggleRtaTilt();
+
     private void RtaTargetDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaTarget(-1);
 
     private void RtaTargetUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaTarget(1);

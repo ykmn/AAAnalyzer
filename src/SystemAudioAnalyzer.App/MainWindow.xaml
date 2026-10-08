@@ -140,6 +140,7 @@
                         <Button Style="{StaticResource ToolButton}" Content="−" Margin="12,0,1,0" Click="RtaTargetDown" />
                         <TextBlock Text="{Binding RtaTargetText}" VerticalAlignment="Center" Margin="6,0" FontSize="11" Foreground="#D6DCE5" />
                         <Button Style="{StaticResource ToolButton}" Content="+" Click="RtaTargetUp" />
+                        <Button Style="{StaticResource ToolButton}" Content="{Binding RtaTiltText}" Margin="12,0,1,0" MinWidth="56" Click="RtaTiltToggle" ToolTip="Наклон RTA: 0 — реальные уровни, +3 дБ/окт — ровная картинка для розового шума" />
                     </StackPanel>
                     <rendering:RtaView x:Name="RtaView" Grid.Row="1" Frame="{Binding LatestFrame}" Resolution="{Binding RtaResolution}" ChannelMode="{Binding RtaChannelMode}" Settings="{Binding MeasurementSettings}" />
                 </Grid>

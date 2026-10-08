@@ -307,7 +307,7 @@ public sealed class SettingsStoreTests
         Assert.Equal(72, settings.Rta.ScaleRangeDb);
         Assert.Equal(-24, settings.Rta.TargetLineDb);
         Assert.Equal(2, settings.Phase.Gain);
-        Assert.Equal(2048, settings.Analyzer.FftSize);
+        Assert.Equal(8192, settings.Analyzer.FftSize);
         Assert.Equal(AnalyzerWindowFunction.Blackman, settings.Analyzer.WindowFunction);
         Assert.Equal(52, settings.Meters.AttackMs);
         Assert.Equal(50, settings.Rta.AveragingCount);
