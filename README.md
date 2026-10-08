@@ -1,33 +1,35 @@
 # AAAnalyzer
 
-Портативный анализатор звука для Windows: показывает спектр, громкость и фазу
-системного звука или сетевого потока (Icecast / HLS) в реальном времени. Ничего
-не нужно устанавливать: ни драйвера, ни виртуального аудиокабеля.
+[🇷🇺 Русский](README-ru.md) · 🇬🇧 English
 
-## Что умеет
+A portable sound analyzer for Windows: shows the spectrum, loudness and phase
+of system audio or a network stream (Icecast / HLS) in real time. Nothing to
+install: no driver, no virtual audio cable.
 
-### Источники звука
+## Features
 
-- **Устройство** — системный микс выбранного устройства вывода через WASAPI loopback. Воспроизведение в колонках или наушниках не нарушается. ASIO не поддерживается!
-- **Поток** — HTTP/HTTPS-адрес Icecast или HLS (`.m3u8`), декодирует LibVLC.
+### Audio sources
 
-### Панель индикаторов уровней (слева)
+- **Device** — the system mix of the selected output device via WASAPI loopback. Playback on speakers or headphones is not interrupted. ASIO is not supported!
+- **Stream** — an HTTP/HTTPS Icecast or HLS (`.m3u8`) URL, decoded by LibVLC.
 
-- Peak-индикаторы каналов L и R со шкалой в dB.
-- LU-индикатор громкости Integrated LUFS. Его вертикальная шкала совпадает со шкалой графика Loudness: 0 и минимум находятся на тех же высотах, шаг меток 3 LU.
-- Индикатор фазы (корреляция L/R от −1 до +1).
+### Level meter panel (left)
 
-### Режимы (вкладки)
+- Peak meters for the L and R channels with a dB scale.
+- Integrated LUFS loudness meter (LU). Its vertical scale matches the Loudness chart scale: 0 and the minimum are at the same heights, with marks every 3 LU.
+- Phase meter (L/R correlation from −1 to +1).
 
-- **Waterfall** — стерео-водопад: левый канал вверху, правый внизу.
+### Modes (tabs)
+
+- **Waterfall** — stereo waterfall: left channel on top, right channel at the bottom.
 
 ![Waterfall](screenshots/AAAnalyzer-Waterfall.png)
 
-- **Loudness** — график истории громкости по времени.
-  - Метрики: Momentary, Short-Term, Integrated.
-  - Окно: 1 мин … 12 ч; масштаб по Y (Y−/Y+), сдвиг (▼/▲) или автомасштаб.
-  - Target line: (по умолчанию −23 LU) с полосой допуска ±3 LU.
-  - Расчёт: по ITU-R BS.1770 (K-взвешивание, абсолютный и относительный пороги).
+- **Loudness** — loudness history chart over time.
+  - Metrics: Momentary, Short-Term, Integrated.
+  - Window: 1 min … 12 h; Y scale (Y−/Y+), shift (▼/▲) or auto-scale.
+  - Target line (−23 LU by default) with a ±3 LU tolerance band.
+  - Calculation per ITU-R BS.1770 (K-weighting, absolute and relative gates).
 
 ![Loudness: Momentary](screenshots/AAAnalyzer-LoudnessM.png)
 
@@ -35,117 +37,117 @@
 
 ![Loudness: Integrated](screenshots/AAAnalyzer-LoudnessI.png)
 
-- **RTA** — спектр-анализатор
-  - полосы 1/1, 1/3, 1/6, 1/12 октавы
-  - источник Mono / L / R,
-  - усреднение (1, 10, 20, …).
-  - Target line: (по умолчанию −23 LU) с полосой допуска ±3 LU
+- **RTA** — spectrum analyzer
+  - 1/1, 1/3, 1/6, 1/12 octave bands
+  - Mono / L / R source,
+  - averaging (1, 10, 20, …).
+  - Target line (−23 LU by default) with a ±3 LU tolerance band
 
 ![RTA](screenshots/AAAnalyzer-RTA.png)
 
-- **Phase** — фазоскоп с регулировкой усиления.
+- **Phase** — phase scope with gain control.
 
 ![Phase](screenshots/AAAnalyzer-Phase.png)
 
-Кнопки в строке вкладок: **СБРОС** (все измерения и графики), **PNG**
-(скриншот текущей вкладки в `Screenshots\`), **НАСТРОЙКИ**.
+Buttons in the tab row: **RESET** (all measurements and charts), **PNG**
+(screenshot of the current tab into `Screenshots\`), **SETTINGS**.
 
-### Язык интерфейса
+### Interface language
 
-English или Русский: переключатель в верхней части окна настроек, применяется сразу.
-Выбор сохраняется в `Data\App.json`. При первом запуске берётся язык системы.
+English or Russian: the switch is at the top of the settings window and applies immediately.
+The choice is saved in `Data\App.json`. On first launch the system language is used.
 
-### Настройки и профили
+### Settings and profiles
 
-Окно настроек охватывает:
-  - FFT (размер, окно, шкалы),
-  - Waterfall (пороги и палитра),
-  - индикаторы,
+The settings window covers:
+  - FFT (size, window, scales),
+  - Waterfall (thresholds and palette),
+  - meters,
   - Loudness,
-  - RTA
+  - RTA,
   - Phase.
-Наборы настроей хранятся в профилях (`Data\profiles.json`): можно сохранить под именем, удалить, назначить профиль по умолчанию. Изменения кнопками на панелях (метрика, окно, цель, RTA)
-сохраняются в профиль по умолчанию автоматически.
+Sets of settings are stored in profiles (`Data\profiles.json`): you can save one under a name, delete it, or make it the default. Changes made with the panel buttons (metric, window, target, RTA)
+are saved to the default profile automatically.
 
-## Требования
+## Requirements
 
 - Windows 10/11.
-- Для запуска готовой сборки ничего не нужно (.NET и LibVLC входят в неё).
-- Для сборки из исходников: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-  с поддержкой Windows Desktop (WPF).
+- Nothing is needed to run a ready-made build (.NET and LibVLC are included).
+- To build from source: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+  with Windows Desktop (WPF) support.
 
-## Запуск готовой сборки
+## Running a ready-made build
 
-Распакуйте архив `AAAnalyzer-<версия>.zip` в папку куда угодно и запустите
-`AAAnalyzer.exe`. Рядом с программой создаются:
+Unpack the `AAAnalyzer-<version>.zip` archive anywhere and run
+`AAAnalyzer.exe`. The following are created next to the program:
 
-| Путь | Содержимое |
+| Path | Contents |
 |---|---|
-| `Data\profiles.json` | профили настроек |
-| `Data\App.json` | язык интерфейса |
-| `Data\stream-history.json` | история адресов потоков |
-| `logs\AAAnalyzer.log` | журнал работы |
-| `Screenshots\` | PNG-скриншоты вкладок |
+| `Data\profiles.json` | settings profiles |
+| `Data\App.json` | interface language |
+| `Data\stream-history.json` | stream URL history |
+| `logs\AAAnalyzer.log` | run log |
+| `Screenshots\` | PNG screenshots of tabs |
 
-## Сборка из исходников
+## Building from source
 
 ```powershell
 git clone https://github.com/ykmn/AAAnalyzer
 cd AAAnalyzer
 
-# отладочная сборка и тесты
+# debug build and tests
 dotnet build
 dotnet test
 
-# запуск без публикации
+# run without publishing
 dotnet run --project src\SystemAudioAnalyzer.App
 ```
 
-### Портативная сборка (.exe)
+### Portable build (.exe)
 
 ```powershell
-# версия берётся из VERSION.txt, формат «1.012 - 2026.10.08»
+# the version is taken from VERSION.txt, format "1.012 - 2026.10.08"
 .\release\rebuild.ps1                              # win-x64
 .\release\rebuild.ps1 -RuntimeIdentifier win-arm64 # ARM64
 ```
 
-Скрипт выполнит `dotnet publish` (Release, self-contained, без одного файла) в
-`release\AAAnalyzer-<версия>`, уберет лишние локализации (оставит только `en` и `ru`)
-и проверит, что в сборке есть `AAAnalyzer.exe` и `libvlc.dll`. Готовую папку
-можно переносить на другой компьютер целиком.
+The script runs `dotnet publish` (Release, self-contained, not single-file) into
+`release\AAAnalyzer-<version>`, removes unneeded localizations (keeping only `en` and `ru`)
+and checks that the build contains `AAAnalyzer.exe` and `libvlc.dll`. The finished folder
+can be copied to another computer as a whole.
 
-История изменений — в [CHANGELOG.md](CHANGELOG.md).
+Change history is in [CHANGELOG.md](CHANGELOG.md).
 
-## Структура репозитория
+## Repository layout
 
 ```text
 SystemAudioAnalyzer.sln
 src/
-  SystemAudioAnalyzer.Core/        движок: захват, уровни, True Peak, LUFS, FFT
-  SystemAudioAnalyzer.App/         WPF-интерфейс, источники WASAPI и LibVLC, настройки
-  SystemAudioAnalyzer.Diagnostic/  консольная утилита: список устройств вывода
+  SystemAudioAnalyzer.Core/        engine: capture, levels, True Peak, LUFS, FFT
+  SystemAudioAnalyzer.App/         WPF UI, WASAPI and LibVLC sources, settings
+  SystemAudioAnalyzer.Diagnostic/  console utility: list output devices
 tests/
-  SystemAudioAnalyzer.Core.Tests/  тесты движка и измерителей
-  SystemAudioAnalyzer.App.Tests/   тесты интерфейсной логики, настроек и отрисовки
+  SystemAudioAnalyzer.Core.Tests/  engine and meter tests
+  SystemAudioAnalyzer.App.Tests/   tests for UI logic, settings and rendering
 release/
-  rebuild.ps1                      сборка портативной версии
+  rebuild.ps1                      portable build script
 ```
 
-### Как устроен поток данных
+### How the data flows
 
 ```text
 WASAPI loopback / LibVLC
-  → очередь (~4 с звука)
-  → равные порции, воспроизведение по часам аудио (~30 кадров/с)
+  → queue (~4 s of audio)
+  → equal chunks, played back on the audio clock (~30 frames/s)
   → LevelMeter, TruePeak, LoudnessMeter, SpectrumAnalyzer (FFT)
-  → AnalysisFrame (неизменяемый снимок)
-  → WPF-представления
+  → AnalysisFrame (immutable snapshot)
+  → WPF views
 ```
 
-Сетевые источники отдают звук пачками (примерно по полсекунды), поэтому движок
-проигрывает его в темпе аудио, а не по мере поступления: кадры идут ровно и
-звук не теряется.
+Network sources deliver audio in bursts (about half a second each), so the engine
+plays it back at audio pace rather than as it arrives: frames come out evenly
+and no audio is lost.
 
-## Благодарности
+## Acknowledgments
 
-Идея интерфейса навеяна плагином Spectrum Tool DSP для WinAMP.
+The interface idea was inspired by the Spectrum Tool DSP plugin for WinAMP.
