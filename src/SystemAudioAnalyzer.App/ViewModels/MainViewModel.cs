@@ -347,7 +347,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         try
         {
-            StatusText = "Запуск анализа…";
+            StatusText = TryGetStreamUri(out var host) && SelectedSourceMode == SourceMode.Stream
+                ? $"Подключение к {host!.Host}…"
+                : "Запуск анализа…";
             RunState = AnalysisRunState.Starting;
             _sourceReportedState = false;
             _frameStatistics.Reset();

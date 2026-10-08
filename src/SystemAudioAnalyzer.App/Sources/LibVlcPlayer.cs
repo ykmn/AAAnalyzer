@@ -17,11 +17,18 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
 
     public event EventHandler<Exception>? Failed;
 
+    // Loading LibVLC and its plug-ins (and the first connection) can take many seconds, so it must not run on the
+    // caller's thread: a blocked UI thread cannot repaint the status text.
     public Task PlayAsync(Uri streamUri, int networkCachingMilliseconds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(streamUri);
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfDisposed();
+        return Task.Run(() => Play(streamUri, networkCachingMilliseconds), cancellationToken);
+    }
+
+    private void Play(Uri streamUri, int networkCachingMilliseconds)
+    {
         StopAndDisposePlayer();
 
         LibVLCSharp.Shared.Core.Initialize();
@@ -37,8 +44,6 @@ public sealed class LibVlcPlayer : ILibVlcPlayer
         {
             HandleFailure(new InvalidOperationException("LibVLC could not start the stream."));
         }
-
-        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default)
