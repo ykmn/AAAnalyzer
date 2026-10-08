@@ -31,6 +31,17 @@ public sealed class LoudnessMeterTests
     }
 
     [Fact]
+    public void StereoLoudnessSumsTheChannelsSoIdenticalChannelsReadThreeDbAboveMono()
+    {
+        var mono = new LoudnessMeter().Process(CreateSineWave(1_000, 48_000, 19_200, amplitude: 0.1f), new AudioFormat(48_000, 1));
+        var stereoSamples = CreateSineWave(1_000, 48_000, 19_200, amplitude: 0.1f).SelectMany(sample => new[] { sample, sample }).ToArray();
+
+        var stereo = new LoudnessMeter().Process(stereoSamples, new AudioFormat(48_000, 2));
+
+        Assert.Equal(mono.MomentaryLufs!.Value + 3.0103f, stereo.MomentaryLufs!.Value, 2);
+    }
+
+    [Fact]
     public void MomentaryLoudnessUsesMeanWindowEnergy()
     {
         var meter = new LoudnessMeter();

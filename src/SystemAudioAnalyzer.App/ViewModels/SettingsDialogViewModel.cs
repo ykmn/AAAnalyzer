@@ -146,6 +146,7 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
     public int LoudnessHistorySeconds { get => Current.Loudness.HistorySeconds; set => Update(loudness: Current.Loudness with { HistorySeconds = value }); }
     public LoudnessMetric LoudnessMetric { get => Current.Loudness.Metric; set => Update(loudness: Current.Loudness with { Metric = value }); }
     public double LoudnessSpan { get => Current.Loudness.SpanLufs; set => Update(loudness: Current.Loudness with { SpanLufs = value, AutoScale = false }); }
+    public double LoudnessTarget { get => Current.Loudness.TargetLufs; set => Update(loudness: Current.Loudness with { TargetLufs = value }); }
     public double LoudnessCentre { get => Current.Loudness.CentreLufs; set => Update(loudness: Current.Loudness with { CentreLufs = value, AutoScale = false }); }
 
     public RtaChannelMode RtaSource { get => Current.Rta.Source; set => Update(rta: Current.Rta with { Source = value }); }

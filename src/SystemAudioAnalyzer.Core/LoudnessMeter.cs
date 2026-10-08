@@ -68,7 +68,7 @@ public sealed class LoudnessMeter
                 energy += weighted * weighted;
             }
 
-            energy /= format.Channels;
+            // BS.1770 sums the channel energies; averaging them would read 3 dB low on identical stereo channels.
             Append(_momentaryEnergies, ref _momentarySum, energy, momentaryFrames);
             Append(_shortTermEnergies, ref _shortTermSum, energy, shortTermFrames);
             _blockSum += energy;
