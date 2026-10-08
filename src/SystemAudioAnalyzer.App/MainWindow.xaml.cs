@@ -20,6 +20,7 @@ public partial class MainWindow : Window
         Localization.Localizer.Instance.Language = preferences.LoadLanguage();
         Localization.Localizer.Instance.LanguageChanged += (_, _) => preferences.SaveLanguage(Localization.Localizer.Instance.Language);
         InitializeComponent();
+        Title = AppInfo.Title;
         MeterRail.ResetRequested += ResetMeterRailValue;
         LoudnessView.RangeChanged += (_, range) => Dispatcher.BeginInvoke(() => MeterRail.LoudnessRange = range);
         _settingsStore = new SettingsStore(diagnostic: _logger.Write);
@@ -66,6 +67,9 @@ public partial class MainWindow : Window
     private void LoudnessTargetDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustLoudnessTarget(-1);
 
     private void LoudnessTargetUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustLoudnessTarget(1);
+
+    private void ShowAbout(object sender, System.Windows.Input.MouseButtonEventArgs eventArgs) =>
+        new AboutWindow { Owner = this }.ShowDialog();
 
     private void ClearStreamHistory(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ClearStreamHistory();
 

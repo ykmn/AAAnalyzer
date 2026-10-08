@@ -229,3 +229,41 @@ public sealed class RtaChannelAlignmentTests
         Assert.InRange(Math.Abs(Math.Log2(monoCenter / toneHz)), 0, 0.5 / bandsPerOctave + 1e-9);
     }
 }
+
+public sealed class AboutTests
+{
+    [Fact]
+    public void VersionComesFromVersionFileAndBuildDateIsADate()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "VERSION.txt"))) directory = directory.Parent;
+        var expected = File.ReadAllText(Path.Combine(directory!.FullName, "VERSION.txt")).Trim().Split(' ')[0];
+
+        Assert.Equal(expected, SystemAudioAnalyzer.App.AppInfo.Version);
+        Assert.Equal($"AA Analyzer {expected}", SystemAudioAnalyzer.App.AppInfo.Title);
+        Assert.True(DateTime.TryParseExact(SystemAudioAnalyzer.App.AppInfo.BuildDate, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out _));
+    }
+
+    [Fact]
+    public void AboutWindowShowsNameVersionDateAndRepository()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var window = new SystemAudioAnalyzer.App.Views.AboutWindow();
+                Assert.Equal("AA Analyzer", ((System.Windows.Controls.TextBlock)window.FindName("NameText")).Text);
+                Assert.Contains(SystemAudioAnalyzer.App.AppInfo.Version, ((System.Windows.Controls.TextBlock)window.FindName("VersionText")).Text);
+                Assert.Contains(SystemAudioAnalyzer.App.AppInfo.BuildDate, ((System.Windows.Controls.TextBlock)window.FindName("BuildDateText")).Text);
+                Assert.Equal("https://github.com/ykmn/AAAnalyzer", ((System.Windows.Documents.Hyperlink)window.FindName("RepositoryLink")).NavigateUri.OriginalString);
+            }
+            catch (Exception exception) { failure = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (failure is not null) throw new Xunit.Sdk.XunitException(failure.ToString());
+    }
+}

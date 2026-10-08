@@ -72,6 +72,15 @@ internal static class Strings
         ["UnitHz"] = ("Hz", "Гц"),
         ["UnitKhz"] = ("kHz", "кГц"),
 
+        // About
+        ["AboutTip"] = ("About the program", "О программе"),
+        ["AboutTitle"] = ("About", "О программе"),
+        ["AboutVersion"] = ("Version {0}", "Версия {0}"),
+        ["AboutBuildDate"] = ("Build date: {0}", "Дата сборки: {0}"),
+        ["AboutCopyright"] = ("© 2026 Roman Ermakov", "© 2026 Роман Ермаков"),
+        ["AboutDescription"] = ("Portable audio analyzer for Windows: spectrum, loudness and phase of system audio or a network stream (Icecast / HLS) in real time.", "Портативный анализатор звука для Windows: спектр, громкость, фаза системного звука или сетевого потока (Icecast / HLS) в реальном времени."),
+        ["AboutClose"] = ("Close", "Закрыть"),
+
         // Settings window
         ["SettingsTitle"] = ("Settings", "Настройки"),
         ["Language"] = ("Language:", "Язык:"),

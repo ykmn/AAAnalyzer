@@ -9,7 +9,22 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>AAAnalyzer</AssemblyName>
     <ApplicationIcon>..\SystemAudioAnalyzer.Diagnostic\Assets\AAAnalyzer.ico</ApplicationIcon>
+    <!-- The shown version comes from VERSION.txt ("1.001 - 2026.10.08"); the build date is the day of this build. -->
+    <VersionFile>$(MSBuildProjectDirectory)\..\..\VERSION.txt</VersionFile>
+    <VersionLine Condition="Exists('$(VersionFile)')">$([System.IO.File]::ReadAllText('$(VersionFile)').Trim())</VersionLine>
+    <AppVersion>$([System.Text.RegularExpressions.Regex]::Match('$(VersionLine)', '^\d+\.\d{3}'))</AppVersion>
+    <AppVersion Condition="'$(AppVersion)' == ''">0.000</AppVersion>
+    <InformationalVersion>$(AppVersion)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <BuildDate>$([System.DateTime]::Now.ToString('yyyy-MM-dd'))</BuildDate>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>BuildDate</_Parameter1>
+      <_Parameter2>$(BuildDate)</_Parameter2>
+    </AssemblyAttribute>
+    <Resource Include="..\..\icons\aaa-icon-final-128.png" Link="Assets\aaa-icon-128.png" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SystemAudioAnalyzer.Core\SystemAudioAnalyzer.Core.csproj" />
   </ItemGroup>

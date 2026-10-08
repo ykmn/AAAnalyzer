@@ -1,0 +1,19 @@
+<Window x:Class="SystemAudioAnalyzer.App.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:SystemAudioAnalyzer.App.Localization"
+        Title="{loc:Tr AboutTitle}" Width="440" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#F4F4F4" Foreground="#111111">
+    <StackPanel Margin="28,24,28,20" HorizontalAlignment="Stretch">
+        <Image Source="pack://application:,,,/Assets/aaa-icon-128.png" Width="128" Height="128" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+        <TextBlock x:Name="NameText" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+        <TextBlock x:Name="VersionText" FontSize="14" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+        <TextBlock x:Name="BuildDateText" FontSize="12" Foreground="#555555" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+        <TextBlock Text="{loc:Tr AboutDescription}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,16,0,0"/>
+        <TextBlock Text="{loc:Tr AboutCopyright}" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+        <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0">
+            <Hyperlink x:Name="RepositoryLink" RequestNavigate="OpenRepository"/>
+        </TextBlock>
+        <Button Content="{loc:Tr AboutClose}" IsCancel="True" IsDefault="True" Click="Close" MinWidth="90" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+    </StackPanel>
+</Window>
