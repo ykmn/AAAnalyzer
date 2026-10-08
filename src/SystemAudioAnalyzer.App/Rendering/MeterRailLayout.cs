@@ -7,8 +7,18 @@ public sealed record LufsScaleRange(double TopDb, double BottomDb, double StepDb
 
 public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect LeftOverload, Rect RightOverload, Rect LeftMeter, Rect RightMeter,
     Rect DbScale, Rect LufsMeter, Rect LufsScale, Rect ChannelLabels, Rect LufsReadout, Rect LufsCaption,
-    Rect LeftCurrent, Rect RightCurrent)
+    Rect LeftCurrent, Rect RightCurrent, Rect PhaseValues, Rect PhaseBar, Rect PhaseScale)
 {
+    /// <summary>Correlation of the left and right channels: +1 identical (mono), 0 unrelated, -1 opposite phase.</summary>
+    public static double? CalculateCorrelation(IReadOnlyList<(float Left, float Right)>? points)
+    {
+        if (points is null || points.Count == 0) return null;
+        double lr = 0, ll = 0, rr = 0;
+        foreach (var (left, right) in points) { lr += left * right; ll += left * left; rr += right * right; }
+        var energy = Math.Sqrt(ll * rr);
+        return energy < 1e-12 ? null : Math.Clamp(lr / energy, -1d, 1d);
+    }
+
     public static double CalculateFillRatio(float linearLevel, double displayRangeDb)
     {
         if (!float.IsFinite(linearLevel) || linearLevel <= 0f || !double.IsFinite(displayRangeDb))
@@ -100,6 +110,8 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
         var overloadY = meterTop - overloadHeight - 2d;
         var currentY = overloadY - peakRowHeight - 1d;
         var maximumY = currentY - peakRowHeight - 1d;
+        var phaseWidth = Math.Max(1d, width - (edge * 2));
+        var phaseTop = meterTop + meterHeight + 2d + rowHeight + readoutHeight + rowHeight + 4d;
         var labels = new Rect(edge, meterTop + meterHeight + 2d, Math.Max(1d, width - (edge * 2)), rowHeight);
         var readout = new Rect(0, labels.Bottom, Math.Max(1d, width), readoutHeight);
         return new MeterRailLayout(
@@ -110,7 +122,8 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
             new Rect(lufsX, meterTop, lufsWidth, meterHeight),
             new Rect(lufsX + lufsWidth, meterTop, lufsScaleWidth, meterHeight),
             labels, readout, new Rect(0, readout.Bottom, Math.Max(1d, width), rowHeight),
-            new Rect(leftX, currentY, barWidth, peakRowHeight), new Rect(rightX, currentY, barWidth, peakRowHeight));
+            new Rect(leftX, currentY, barWidth, peakRowHeight), new Rect(rightX, currentY, barWidth, peakRowHeight),
+            new Rect(edge, phaseTop, phaseWidth, 12d), new Rect(edge, phaseTop + 13d, phaseWidth, 8d), new Rect(edge, phaseTop + 22d, phaseWidth, 12d));
     }
 
     /// <summary>Clicks on either channel's readouts or overload lamp reset that value for both channels.</summary>

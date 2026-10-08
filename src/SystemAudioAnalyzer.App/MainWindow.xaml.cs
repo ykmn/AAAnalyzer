@@ -12,12 +12,14 @@ public partial class MainWindow : Window
     private readonly AppLogger _logger = new(AppContext.BaseDirectory);
     private readonly SettingsStore _settingsStore;
     private readonly ToolbarSettingsPersister _toolbarPersister;
+    private readonly StreamHistoryStore _streamHistoryStore;
     public MainWindow()
     {
         InitializeComponent();
         MeterRail.ResetRequested += ResetMeterRailValue;
         LoudnessView.RangeChanged += (_, range) => Dispatcher.BeginInvoke(() => MeterRail.LoudnessRange = range);
         _settingsStore = new SettingsStore(diagnostic: _logger.Write);
+        _streamHistoryStore = new StreamHistoryStore(Path.Combine(AppContext.BaseDirectory, "Data"), _logger.Write);
         var provider = new NaudioAudioOutputDeviceProvider();
         _toolbarPersister = new ToolbarSettingsPersister(_settingsStore, _logger.Write);
         var mainViewModel = new MainViewModel(new AnalyzerController(_logger.Write), provider.GetActiveDevices());
@@ -26,6 +28,7 @@ public partial class MainWindow : Window
             if (args.PropertyName == nameof(MainViewModel.StatusText)) _logger.Write($"Status: {mainViewModel.StatusText}");
         };
         mainViewModel.ToolbarSettingsChanged += async (_, args) => await _toolbarPersister.PersistAsync(args.Settings);
+        mainViewModel.StreamHistoryChanged += async (_, _) => await _streamHistoryStore.SaveAsync(mainViewModel.StreamHistory.ToArray());
         DataContext = mainViewModel;
         Loaded += LoadSettingsAsync;
     }
@@ -44,6 +47,7 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel viewModel)
         {
             viewModel.MeasurementSettings = await _settingsStore.LoadStartupSettingsAsync();
+            viewModel.LoadStreamHistory(await _streamHistoryStore.LoadAsync());
         }
     }
 
@@ -54,6 +58,12 @@ public partial class MainWindow : Window
     private void LoudnessShiftDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ShiftLoudness(-1);
 
     private void LoudnessShiftUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ShiftLoudness(1);
+
+    private void LoudnessTargetDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustLoudnessTarget(-1);
+
+    private void LoudnessTargetUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustLoudnessTarget(1);
+
+    private void ClearStreamHistory(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ClearStreamHistory();
 
     private void RtaAverageDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaAveraging(-10);
 
@@ -73,6 +83,7 @@ public partial class MainWindow : Window
         WaterfallView.Reset();
         LoudnessView.Reset();
         RtaView.Reset();
+        MeterRail.ResetPhase();
     }
 
     private async void SaveScreenshot(object sender, RoutedEventArgs eventArgs)

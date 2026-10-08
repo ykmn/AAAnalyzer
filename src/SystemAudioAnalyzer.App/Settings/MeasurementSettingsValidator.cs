@@ -89,6 +89,7 @@ public static class MeasurementSettingsValidator
             Check(Enum.IsDefined(loudness.Metric), "Loudness.Metric");
             Positive(loudness.SpanLufs, "Loudness.SpanLufs");
             Finite(loudness.CentreLufs, "Loudness.CentreLufs");
+            Finite(loudness.TargetLufs, "Loudness.TargetLufs");
             Gradient(loudness.GradientStops, "Loudness.GradientStops");
         }
         if (settings.Rta is not { } rta) Check(false, nameof(settings.Rta));

@@ -13,6 +13,8 @@ public sealed class MeterRailView : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
     public static readonly DependencyProperty LoudnessRangeProperty = DependencyProperty.Register(
         nameof(LoudnessRange), typeof((double Minimum, double Maximum)?), typeof(MeterRailView), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+    private double? _phaseCorrelation;
+    private double _phaseMinimum = 1;
     private readonly MeteringHistory[] _meteringHistories = [new(), new()];
     private readonly MeterDisplayState[] _displayStates = [new(0, 0, 0), new(0, 0, 0)];
 
@@ -28,6 +30,13 @@ public sealed class MeterRailView : FrameworkElement
     public (double Minimum, double Maximum)? LoudnessRange { get => ((double, double)?)GetValue(LoudnessRangeProperty); set => SetValue(LoudnessRangeProperty, value); }
 
     public event EventHandler<MeterRailResetEventArgs>? ResetRequested;
+
+    public void ResetPhase()
+    {
+        _phaseCorrelation = null;
+        _phaseMinimum = 1;
+        InvalidateVisual();
+    }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs eventArgs)
     {
@@ -123,8 +132,15 @@ public sealed class MeterRailView : FrameworkElement
                 context.DrawLine(new Pen(Brushes.LightGray, 0.5), new Point(column.Right, y), new Point(column.Right + 3, y));
                 DrawText(context, tick.Label, new Rect(layout.LufsScale.Left + 3, y - 6, layout.LufsScale.Width - 3, 12), fontSize - 1, dimText, TextAlignment.Left);
             }
+            var target = Settings.Loudness.TargetLufs;
+            if (target >= lufsScale.BottomDb && target <= lufsScale.TopDb)
+            {
+                var targetY = column.Bottom - (MeterRailLayout.CalculateLufsRatio(target, lufsScale) * column.Height);
+                context.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 138, 128)), 1.5), new Point(column.Left - 2, targetY), new Point(column.Right + 3, targetY));
+            }
             DrawText(context, "LU", new Rect(column.Left - 4, layout.ChannelLabels.Top, column.Width + 8, layout.ChannelLabels.Height), fontSize, lufsBrush, TextAlignment.Center);
         }
+        DrawPhaseMeter(context, layout, fontSize, dimText);
         if (meters.ShowLkfsReadout)
         {
             DrawText(context, lufsValue.HasValue ? $"{lufsValue.Value:0.0}" : "—", layout.LufsReadout, fontSize + 5, lufsBrush, TextAlignment.Center, FontWeights.Bold);
@@ -132,11 +148,47 @@ public sealed class MeterRailView : FrameworkElement
         }
     }
 
+    private void DrawPhaseMeter(DrawingContext context, MeterRailLayout layout, double fontSize, Brush dimText)
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        var bar = layout.PhaseBar;
+        double X(double value) => bar.Left + ((value + 1d) / 2d * bar.Width);
+        context.DrawRectangle(Brushes.Black, new Pen(Brushes.DimGray, 1), bar);
+        if (_phaseCorrelation is { } value)
+        {
+            var from = X(Math.Min(0d, value));
+            var to = X(Math.Max(0d, value));
+            Brush fill = value >= 0
+                ? new LinearGradientBrush(Color.FromRgb(255, 214, 10), Color.FromRgb(255, 140, 0), 0d)
+                : new LinearGradientBrush(Color.FromRgb(255, 140, 0), Color.FromRgb(230, 50, 40), 0d);
+            context.DrawRectangle(fill, null, new Rect(from, bar.Top + 1, Math.Max(0d, to - from), bar.Height - 2));
+        }
+        // Scale -1 -0.5 0 0.5 1; each label is centred on its tick, kept inside the rail.
+        foreach (var mark in new[] { -1d, -0.5, 0d, 0.5, 1d })
+        {
+            var x = X(mark);
+            context.DrawLine(new Pen(Brushes.LightGray, 0.5), new Point(x, bar.Bottom), new Point(x, bar.Bottom + 3));
+            var label = mark == 0 ? "0" : mark.ToString("0.#", culture);
+            DrawText(context, label, new Rect(Math.Clamp(x - 14, layout.PhaseScale.Left, layout.PhaseScale.Right - 28), layout.PhaseScale.Top + 2, 28, 10), fontSize - 2, dimText, TextAlignment.Center);
+        }
+        // Left: lowest correlation since the last reset. Right: current.
+        var minimumText = _phaseMinimum < 1 ? _phaseMinimum.ToString("0.0", culture) : "—";
+        var currentText = _phaseCorrelation is { } current ? current.ToString("0.0", culture) : "—";
+        DrawText(context, minimumText, layout.PhaseValues, fontSize - 1, new SolidColorBrush(Color.FromRgb(255, 190, 90)), TextAlignment.Left);
+        DrawText(context, currentText, layout.PhaseValues, fontSize - 1, Brushes.White, TextAlignment.Right);
+    }
+
     private static void OnFrameChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         var view = (MeterRailView)target;
         var frame = args.NewValue as AnalysisFrame;
         var truePeak = frame?.AdvancedMeasurements?.TruePeak;
+        if (MeterRailLayout.CalculateCorrelation(frame?.AdvancedMeasurements?.PhaseScope?.Points) is { } correlation)
+        {
+            // Light smoothing keeps the bar readable.
+            view._phaseCorrelation = view._phaseCorrelation is { } previous ? previous + ((correlation - previous) * 0.2) : correlation;
+            view._phaseMinimum = Math.Min(view._phaseMinimum, view._phaseCorrelation.Value);
+        }
         for (var channel = 0; channel < view._meteringHistories.Length; channel++)
         {
             var level = frame?.Levels.ElementAtOrDefault(channel) ?? new SystemAudioAnalyzer.Core.ChannelLevel(0, 0);

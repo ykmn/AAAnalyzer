@@ -67,14 +67,16 @@ public sealed record MeterSettings([property: JsonRequired] double DisplayRangeD
 
 public sealed record LoudnessDisplaySettings([property: JsonRequired] int HistorySeconds, [property: JsonRequired] LoudnessMetric Metric, [property: JsonRequired] bool AutoScale, [property: JsonRequired] double SpanLufs, [property: JsonRequired] double CentreLufs)
 {
+    /// <summary>Reference loudness drawn as a line on the plot (EBU R128 programme loudness by default).</summary>
+    public double TargetLufs { get; init; } = -23;
     public ImmutableArray<ColorStop> GradientStops { get; init; } = [new(-15, "#2F6FD6"), new(-12, "#2FA84F"), new(-8, "#E0C93A"), new(-6, "#D6392F")];
 
     public bool Equals(LoudnessDisplaySettings? other) => other is not null
         && HistorySeconds == other.HistorySeconds && Metric == other.Metric && AutoScale == other.AutoScale
-        && SpanLufs.Equals(other.SpanLufs) && CentreLufs.Equals(other.CentreLufs)
+        && SpanLufs.Equals(other.SpanLufs) && CentreLufs.Equals(other.CentreLufs) && TargetLufs.Equals(other.TargetLufs)
         && ColorStopEquality.Equals(GradientStops, other.GradientStops);
 
-    public override int GetHashCode() => HashCode.Combine(HistorySeconds, Metric, AutoScale, SpanLufs, CentreLufs, ColorStopEquality.GetHashCode(GradientStops));
+    public override int GetHashCode() => HashCode.Combine(HistorySeconds, Metric, AutoScale, SpanLufs, CentreLufs, TargetLufs, ColorStopEquality.GetHashCode(GradientStops));
 }
 
 public sealed record RtaDisplaySettings([property: JsonRequired] RtaChannelMode Source, [property: JsonRequired] RtaResolution Resolution, [property: JsonRequired] double ScaleTopDb, [property: JsonRequired] double ScaleRangeDb, [property: JsonRequired] double TargetLineDb)

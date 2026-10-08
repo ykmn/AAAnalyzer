@@ -2,6 +2,17 @@ namespace SystemAudioAnalyzer.Core.Tests;
 
 public sealed class AudioAnalysisEngineTests
 {
+    // Large buffers are cut into slices, each published as its own frame; the spectrum appears once a window is full.
+    private static async Task<bool> NextWithSpectrumAsync(IAsyncEnumerator<AnalysisFrame> frames)
+    {
+        while (await frames.MoveNextAsync())
+        {
+            if (frames.Current.Spectrum is not null) return true;
+        }
+
+        return false;
+    }
+
     [Fact]
     public async Task LiveUpdatesAdoptLatestConfigurationWithoutRestartingOrKeepingOldFftSamples()
     {
@@ -14,7 +25,7 @@ public sealed class AudioAnalysisEngineTests
         var format = new AudioFormat(48_000, 2);
 
         capture.Publish(Enumerable.Repeat(1f, 8192).ToArray(), format);
-        Assert.True(await frames.MoveNextAsync());
+        Assert.True(await NextWithSpectrumAsync(frames));
         Assert.Equal(4096, frames.Current.Spectrum!.FftSize);
 
         // Consecutive requests before the next buffer must select the latest one.
@@ -23,7 +34,7 @@ public sealed class AudioAnalysisEngineTests
         Assert.Equal(EngineState.Running, engine.State);
         await Task.Delay(40, cancellation.Token);
         capture.Publish(new float[1024], format);
-        Assert.True(await frames.MoveNextAsync());
+        Assert.True(await NextWithSpectrumAsync(frames));
         var updated = frames.Current;
         Assert.NotNull(updated.Spectrum);
         Assert.Equal(512, updated.Spectrum!.FftSize);
@@ -38,17 +49,44 @@ public sealed class AudioAnalysisEngineTests
         engine.SetAnalysisConfiguration(new AnalysisConfiguration(512, SpectrumWindow.Hamming));
         await Task.Delay(40, cancellation.Token);
         capture.Publish(Enumerable.Repeat(1f, 1024).ToArray(), format);
-        Assert.True(await frames.MoveNextAsync());
+        Assert.True(await NextWithSpectrumAsync(frames));
         Assert.InRange(frames.Current.Spectrum!.Magnitudes[0], 0.999f, 1.001f);
 
         engine.SetAnalysisConfiguration(new AnalysisConfiguration(2048, SpectrumWindow.Blackman));
         await Task.Delay(40, cancellation.Token);
         capture.Publish(new float[4096], format);
-        Assert.True(await frames.MoveNextAsync());
+        Assert.True(await NextWithSpectrumAsync(frames));
         Assert.Equal(2048, frames.Current.Spectrum!.FftSize);
         Assert.Equal(EngineState.Running, engine.State);
         Assert.Equal(1, capture.StartCount);
         Assert.Equal(0, capture.StopCount);
+    }
+
+    [Fact]
+    public async Task ABurstOfBuffersIsPlayedOutAsEvenFramesWithoutDroppingAudio()
+    {
+        var capture = new FakeCapture();
+        var device = new OutputDeviceInfo("default", "Speakers", true);
+        await using var engine = new AudioAnalysisEngine(new FakeDeviceProvider(device), new FakeCaptureFactory(capture));
+        var dropped = 0L;
+        engine.DiagnosticPublished += (_, diagnostic) => Interlocked.Add(ref dropped, diagnostic.DroppedBufferCount);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await engine.StartAsync();
+        var format = new AudioFormat(48_000, 2);
+
+        // Network sources hand over about half a second at once: 20 buffers of 2048 frames.
+        for (var index = 0; index < 20; index++) capture.Publish(new float[2048 * 2], format);
+
+        var timestamps = new List<DateTimeOffset>();
+        await foreach (var frame in engine.ReadFrames(cancellation.Token))
+        {
+            timestamps.Add(frame.Timestamp);
+            if (timestamps.Count == 12) break;
+        }
+
+        Assert.Equal(0, dropped);
+        var gaps = timestamps.Zip(timestamps.Skip(1), (first, second) => (second - first).TotalMilliseconds).ToArray();
+        Assert.All(gaps, gap => Assert.InRange(gap, 5, 120));
     }
 
     [Fact]

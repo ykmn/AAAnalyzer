@@ -5,9 +5,12 @@ namespace SystemAudioAnalyzer.Core;
 
 public sealed class AudioAnalysisEngine : IAsyncDisposable
 {
-    private static readonly TimeSpan MinimumFrameInterval = TimeSpan.FromSeconds(1d / 30d);
+    private static readonly TimeSpan MinimumFrameInterval = TimeSpan.FromMilliseconds(15);
+    // Roughly four seconds of audio. Network sources deliver it in bursts (LibVLC hands over ~0.5 s at a time), so the
+    // queue must absorb a burst while the consumer plays it out at the pace of the audio clock.
+    private const int MaximumQueuedBuffers = 128;
+    private const int ChunkFrames = 1536;
     private readonly object _sync = new();
-    private readonly object _queueGate = new();
     private readonly IAudioOutputDeviceProvider _deviceProvider;
     private readonly IAudioCaptureFactory _captureFactory;
     private readonly LevelMeter _levelMeter = new();
@@ -123,12 +126,14 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         lock (_sync)
         {
             _stateMachine.BeginStarting();
-            samples = Channel.CreateBounded<AudioSamplesAvailableEventArgs>(new BoundedChannelOptions(8)
+            // DropOldest keeps latency low when analysis falls behind. The channel drops atomically; reading from the
+            // producer side as well would break the SingleReader contract and lose the consumer's wake-ups.
+            samples = Channel.CreateBounded<AudioSamplesAvailableEventArgs>(new BoundedChannelOptions(MaximumQueuedBuffers)
             {
-                FullMode = BoundedChannelFullMode.Wait,
+                FullMode = BoundedChannelFullMode.DropOldest,
                 SingleReader = true,
                 SingleWriter = false,
-            });
+            }, _ => Interlocked.Increment(ref _droppedBufferCount));
             frames = Channel.CreateBounded<AnalysisFrame>(new BoundedChannelOptions(4)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
@@ -145,7 +150,11 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             Interlocked.Exchange(ref _droppedBufferCount, 0);
             source.SamplesAvailable += OnSamplesAvailable;
             source.Faulted += OnCaptureFaulted;
-            _processingTask = ProcessSamplesAsync(samples.Reader, frames.Writer, cancellation.Token);
+            // A dedicated thread: audio arrives every ~20 ms and waking a thread-pool continuation for each buffer was
+            // measured to take far longer than that, which starved the analysis and dropped half the buffers.
+            _processingTask = Task.Factory.StartNew(
+                () => ProcessSamples(samples.Reader, frames.Writer, cancellation.Token),
+                CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         try
@@ -263,28 +272,8 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
 
     public async ValueTask DisposeAsync() => await StopAsync().ConfigureAwait(false);
 
-    private void OnSamplesAvailable(object? sender, AudioSamplesAvailableEventArgs eventArgs)
-    {
-        lock (_queueGate)
-        {
-            var samples = _samples;
-            if (samples is null || samples.Writer.TryWrite(eventArgs))
-            {
-                return;
-            }
-
-            if (samples.Reader.TryRead(out _))
-            {
-                Interlocked.Increment(ref _droppedBufferCount);
-                if (samples.Writer.TryWrite(eventArgs))
-                {
-                    return;
-                }
-            }
-
-            Interlocked.Increment(ref _droppedBufferCount);
-        }
-    }
+    private void OnSamplesAvailable(object? sender, AudioSamplesAvailableEventArgs eventArgs) =>
+        _samples?.Writer.TryWrite(eventArgs);
 
     private void OnCaptureFaulted(object? sender, CaptureFaultedEventArgs eventArgs)
     {
@@ -299,7 +288,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         PublishDiagnostic(CreateDiagnostic(EngineDiagnosticKind.Faulted, "Audio capture failed.", device, exception: eventArgs.Exception));
     }
 
-    private async Task ProcessSamplesAsync(
+    private void ProcessSamples(
         ChannelReader<AudioSamplesAvailableEventArgs> samples,
         ChannelWriter<AnalysisFrame> frames,
         CancellationToken cancellationToken)
@@ -313,8 +302,22 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         IReadOnlyList<ChannelLevel>? pendingLevels = null;
         Spectrum? pendingSpectrum = null;
         StereoSpectrum? pendingStereo = null;
-        await foreach (var buffer in samples.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        var chunker = new FixedChunker(ChunkFrames);
+        var due = System.Diagnostics.Stopwatch.GetTimestamp();
+        while (WaitForBuffers(samples, cancellationToken))
+        while (samples.TryRead(out var queued))
         {
+        var slices = chunker.Add(queued, flush: samples.Count == 0);
+        for (var sliceIndex = 0; sliceIndex < slices.Count; sliceIndex++)
+        {
+            var buffer = slices[sliceIndex];
+            var lastOfQueue = sliceIndex == slices.Count - 1 && samples.Count == 0;
+            // Play each buffer out at its natural time: a burst becomes an even stream of frames instead of one
+            // frame per burst, and no audio has to be dropped to keep up.
+            if (!SleepUntil(due, cancellationToken)) return;
+            due = Math.Max(due, System.Diagnostics.Stopwatch.GetTimestamp())
+                + (long)((double)(buffer.Samples.Length / buffer.Format.Channels) / buffer.Format.SampleRate * System.Diagnostics.Stopwatch.Frequency);
+
             var requestedConfiguration = Volatile.Read(ref _requestedConfiguration);
             if (requestedConfiguration != activeConfiguration)
             {
@@ -349,7 +352,8 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             }
 
             pendingPeaks = MergePeaks(pendingPeaks, truePeak.Current);
-            if (timestamp - _lastFrameTimestamp < MinimumFrameInterval)
+            // Nothing else is waiting, so there is no later buffer that could carry this one's result: publish it now.
+            if (!lastOfQueue && timestamp - _lastFrameTimestamp < MinimumFrameInterval)
             {
                 continue;
             }
@@ -374,8 +378,32 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
             frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, pendingLevels!, pendingSpectrum, droppedBufferCount, advancedMeasurements));
             pendingPeaks = [];
             pendingLevels = null;
-            pendingSpectrum = null;
-            pendingStereo = null;
+            // The newest spectrum stays until a newer one replaces it: a slice shorter than the FFT hop has none of its own.
+        }
+        }
+    }
+
+    private static bool SleepUntil(long dueTimestamp, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var remaining = System.Diagnostics.Stopwatch.GetElapsedTime(System.Diagnostics.Stopwatch.GetTimestamp(), dueTimestamp);
+            if (remaining < TimeSpan.FromMilliseconds(1)) return true;
+            Thread.Sleep(remaining > TimeSpan.FromMilliseconds(15) ? TimeSpan.FromMilliseconds(15) : remaining);
+        }
+
+        return false;
+    }
+
+    private static bool WaitForBuffers(ChannelReader<AudioSamplesAvailableEventArgs> samples, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return samples.WaitToReadAsync(cancellationToken).AsTask().GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
         }
     }
 
@@ -416,4 +444,43 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         new(DateTimeOffset.UtcNow, kind, message, device, format, droppedBufferCount, exception);
 
     private void PublishDiagnostic(EngineDiagnostic diagnostic) => DiagnosticPublished?.Invoke(this, diagnostic);
+
+    /// <summary>
+    /// Re-cuts the source's blocks (whatever their size) into equal chunks, so frames are produced at an even rate of
+    /// about 30 per second and every waterfall row covers the same stretch of audio.
+    /// </summary>
+    private sealed class FixedChunker(int chunkFrames)
+    {
+        private readonly List<float> _pending = [];
+        private AudioFormat? _format;
+
+        public List<AudioSamplesAvailableEventArgs> Add(AudioSamplesAvailableEventArgs buffer, bool flush)
+        {
+            if (_format != buffer.Format)
+            {
+                _pending.Clear();
+                _format = buffer.Format;
+            }
+
+            _pending.AddRange(buffer.Samples);
+            var chunkLength = chunkFrames * buffer.Format.Channels;
+            var chunks = new List<AudioSamplesAvailableEventArgs>();
+            var start = 0;
+            while (_pending.Count - start >= chunkLength)
+            {
+                chunks.Add(new AudioSamplesAvailableEventArgs(_pending.GetRange(start, chunkLength).ToArray(), buffer.Format));
+                start += chunkLength;
+            }
+
+            _pending.RemoveRange(0, start);
+            if (flush && _pending.Count > 0)
+            {
+                // Nothing more is queued: the remainder must not wait for audio that may not come.
+                chunks.Add(new AudioSamplesAvailableEventArgs(_pending.ToArray(), buffer.Format));
+                _pending.Clear();
+            }
+
+            return chunks;
+        }
+    }
 }

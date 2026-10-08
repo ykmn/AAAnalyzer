@@ -105,7 +105,7 @@ public sealed class LibVlcAudioSource : IAudioSource
         SamplesAvailable?.Invoke(this, new AudioSamplesAvailableEventArgs(eventArgs.Samples, eventArgs.Format));
 
     private void OnBufferingChanged(object? sender, float progress) =>
-        SetState(progress < 100 ? AudioSourceState.Buffering : AudioSourceState.Running);
+        SetState(progress < 100 ? AudioSourceState.Buffering : AudioSourceState.Running, progress < 100 ? progress : null);
 
     private void OnFailed(object? sender, Exception exception) => HandleFailure(exception);
 
@@ -115,15 +115,16 @@ public sealed class LibVlcAudioSource : IAudioSource
         Faulted?.Invoke(this, new CaptureFaultedEventArgs(exception));
     }
 
-    private void SetState(AudioSourceState state)
+    private void SetState(AudioSourceState state, float? bufferingPercent = null)
     {
-        if (_state == state)
+        // Buffering repeats with a new percentage; every other state is reported once.
+        if (_state == state && bufferingPercent is null)
         {
             return;
         }
 
         _state = state;
-        StateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state));
+        StateChanged?.Invoke(this, new AudioSourceStateChangedEventArgs(state, bufferingPercent));
     }
 
     private void ThrowIfDisposed()

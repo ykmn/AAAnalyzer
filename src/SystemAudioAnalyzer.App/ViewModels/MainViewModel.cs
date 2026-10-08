@@ -22,6 +22,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private MeasurementSettings _measurementSettings = MeasurementSettings.Default;
     private double _phaseGain = MeasurementSettings.Default.Phase.Gain;
     private bool _syncingFromSettings;
+    private bool _sourceReportedState;
     private AnalysisRunState _runState = AnalysisRunState.Stopped;
     private readonly FrameStatistics _frameStatistics = new();
     private DateTimeOffset _lastDiagnosticsUpdate = DateTimeOffset.MinValue;
@@ -45,7 +46,37 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>Raised when a toolbar button (not the settings dialog or startup load) changed the settings.</summary>
     public event EventHandler<ToolbarSettingsChangedEventArgs>? ToolbarSettingsChanged;
 
+    /// <summary>Raised after the stream URL history changed (a stream was opened or the list was cleared).</summary>
+    public event EventHandler? StreamHistoryChanged;
+
     public ReadOnlyCollection<OutputDeviceInfo> Devices { get; }
+
+    /// <summary>Most recently opened stream URLs, newest first, at most <see cref="StreamHistoryStore.Capacity"/>.</summary>
+    public ObservableCollection<string> StreamHistory { get; } = [];
+
+    public void LoadStreamHistory(IEnumerable<string> urls)
+    {
+        StreamHistory.Clear();
+        foreach (var url in urls.Take(StreamHistoryStore.Capacity)) StreamHistory.Add(url);
+    }
+
+    public void ClearStreamHistory()
+    {
+        StreamHistory.Clear();
+        StreamHistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void RememberStream(string url)
+    {
+        url = url.Trim();
+        if (url.Length == 0) return;
+        var existing = StreamHistory.IndexOf(url);
+        if (existing == 0) return;
+        if (existing > 0) StreamHistory.RemoveAt(existing);
+        StreamHistory.Insert(0, url);
+        while (StreamHistory.Count > StreamHistoryStore.Capacity) StreamHistory.RemoveAt(StreamHistory.Count - 1);
+        StreamHistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public AsyncCommand StartCommand { get; }
 
@@ -244,6 +275,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(LoudnessScaleText));
                 OnPropertyChanged(nameof(RtaAverageText));
                 OnPropertyChanged(nameof(RtaTargetText));
+                OnPropertyChanged(nameof(LoudnessTargetText));
             }
         }
     }
@@ -262,6 +294,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string LoudnessScaleText => ToolbarSettingsActions.LoudnessScaleText(MeasurementSettings);
 
+    public string LoudnessTargetText => $"Tgt {MeasurementSettings.Loudness.TargetLufs:0}";
+
     public string RtaAverageText => $"Avg {MeasurementSettings.Rta.AveragingCount}";
 
     public string RtaTargetText => $"Tgt {MeasurementSettings.Rta.TargetLineDb:0}";
@@ -269,6 +303,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ZoomLoudness(double factor) => ApplyToolbarChange(settings => ToolbarSettingsActions.ZoomLoudness(settings, factor));
 
     public void ShiftLoudness(double deltaLufs) => ApplyToolbarChange(settings => ToolbarSettingsActions.ShiftLoudness(settings, deltaLufs));
+
+    public void AdjustLoudnessTarget(double deltaLufs) => ApplyToolbarChange(settings => ToolbarSettingsActions.WithLoudnessTarget(settings, deltaLufs));
 
     public void CycleRollingWindow() => ApplyToolbarChange(ToolbarSettingsActions.CycleRollingWindow);
 
@@ -313,12 +349,23 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             StatusText = "Запуск анализа…";
             RunState = AnalysisRunState.Starting;
+            _sourceReportedState = false;
             _frameStatistics.Reset();
             _lastDiagnosticsUpdate = DateTimeOffset.MinValue;
             await _controller.StartAsync(selection);
             IsAnalyzing = true;
-            if (RunState is AnalysisRunState.Starting) RunState = AnalysisRunState.Running;
-            StatusText = "Анализ выполняется.";
+            if (selection.Mode == SourceMode.Stream)
+            {
+                // The stream is still connecting or buffering; the source events and the first frame
+                // move the state on, so the status keeps saying what is happening.
+                RememberStream(StreamUrl);
+                if (RunState is AnalysisRunState.Starting && !_sourceReportedState) StatusText = $"Подключение к {selection.StreamUri?.Host}…";
+            }
+            else
+            {
+                if (RunState is AnalysisRunState.Starting) RunState = AnalysisRunState.Running;
+                StatusText = "Анализ выполняется.";
+            }
         }
         catch (Exception exception)
         {
@@ -352,6 +399,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             LatestFrame = frame;
+            if (IsAnalyzing && RunState is AnalysisRunState.Starting)
+            {
+                // Audio is flowing, whatever the source last reported.
+                RunState = AnalysisRunState.Running;
+                StatusText = "Анализ выполняется.";
+            }
             var uiWork = System.Diagnostics.Stopwatch.GetElapsedTime(started);
             var now = DateTimeOffset.UtcNow;
             _frameStatistics.Record(frame.Timestamp, now, frame.DroppedBufferCount, uiWork);
@@ -365,6 +418,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void OnSourceStateChanged(object? sender, AudioSourceStateChangedEventArgs eventArgs) =>
         RunOnUi(() =>
         {
+            _sourceReportedState = true;
             RunState = eventArgs.State switch
             {
                 AudioSourceState.Connecting or AudioSourceState.Buffering => AnalysisRunState.Starting,
@@ -372,13 +426,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 AudioSourceState.Faulted => AnalysisRunState.Faulted,
                 _ => AnalysisRunState.Stopped,
             };
-            ApplySourceStatus(eventArgs.State);
+            ApplySourceStatus(eventArgs);
         });
 
-    private void ApplySourceStatus(AudioSourceState state) => StatusText = state switch
+    private void ApplySourceStatus(AudioSourceStateChangedEventArgs eventArgs) => StatusText = eventArgs.State switch
         {
             AudioSourceState.Connecting => "Подключение к источнику…",
-            AudioSourceState.Buffering => "Буферизация потока…",
+            AudioSourceState.Buffering => eventArgs.BufferingPercent is { } percent
+                ? $"Буферизация потока… {percent:0}%"
+                : "Буферизация потока…",
             AudioSourceState.Running => "Анализ выполняется.",
             AudioSourceState.Faulted => "Ошибка источника. Можно повторить запуск.",
             _ => "Анализ остановлен.",

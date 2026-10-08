@@ -9,6 +9,6 @@ public static class WorkspaceLayout
     public const double TabBarHeight = 26;
     public const double LoudnessToolbarHeight = 54;
     public const double LoudnessPlotTopGutter = 16;
-    public const double PlotBottomReserve = 54;
+    public const double PlotBottomReserve = 94;
     public const double PlotTop = TabBarHeight + LoudnessToolbarHeight + LoudnessPlotTopGutter;
 }

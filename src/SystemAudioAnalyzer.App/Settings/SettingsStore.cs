@@ -7,6 +7,8 @@ namespace SystemAudioAnalyzer.App.Settings;
 
 public sealed class SettingsStore
 {
+    // Added after profiles.json files already existed; a missing value takes its default instead of discarding the catalog.
+    private static readonly HashSet<string> OptionalProperties = ["TargetLufs"];
     private readonly string _settingsDirectory;
     private readonly Action<string>? _diagnostic;
     private readonly string _legacySettingsPath;
@@ -18,7 +20,7 @@ public sealed class SettingsStore
         {
             // The catalog constructor validates its get-only fields. Settings/profile init
             // properties must all be present so a full snapshot cannot silently gain defaults.
-            Modifiers = { typeInfo => { foreach (var property in typeInfo.Properties) if (property.Set is not null) property.IsRequired = true; } },
+            Modifiers = { typeInfo => { foreach (var property in typeInfo.Properties) if (property.Set is not null) property.IsRequired = !OptionalProperties.Contains(property.Name); } },
         },
     };
 

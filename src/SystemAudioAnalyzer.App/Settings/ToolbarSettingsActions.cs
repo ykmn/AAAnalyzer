@@ -19,6 +19,9 @@ public static class ToolbarSettingsActions
     public static MeasurementSettings ShiftLoudness(MeasurementSettings settings, double deltaLufs) =>
         settings with { Loudness = settings.Loudness with { AutoScale = false, CentreLufs = settings.Loudness.CentreLufs + deltaLufs } };
 
+    public static MeasurementSettings WithLoudnessTarget(MeasurementSettings settings, double deltaLufs) =>
+        settings with { Loudness = settings.Loudness with { TargetLufs = Math.Clamp(settings.Loudness.TargetLufs + deltaLufs, -70, 0) } };
+
     public static MeasurementSettings CycleRollingWindow(MeasurementSettings settings)
     {
         var current = settings.Meters.IntegratedWindowSeconds;
@@ -70,6 +73,7 @@ public static class ToolbarSettingsActions
             AutoScale = source.Loudness.AutoScale,
             SpanLufs = source.Loudness.SpanLufs,
             CentreLufs = source.Loudness.CentreLufs,
+            TargetLufs = source.Loudness.TargetLufs,
         },
         Meters = target.Meters with { IntegratedWindowSeconds = source.Meters.IntegratedWindowSeconds },
     };

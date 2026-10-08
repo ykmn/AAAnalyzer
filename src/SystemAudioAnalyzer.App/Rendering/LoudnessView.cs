@@ -52,8 +52,21 @@ public sealed class LoudnessView : FrameworkElement
             context.DrawLine(gridPen, new Point(0, y), new Point(ActualWidth, y));
             DrawLabel(context, $"{lufs:0} LUFS", 3, y + 1);
         }
+        DrawTarget(context, minimum, maximum);
         DrawSeries(context, points, selected, minimum, maximum, now, visibleDuration);
         DrawCaption(context);
+    }
+
+    private void DrawTarget(DrawingContext context, double minimum, double maximum)
+    {
+        var target = Settings.Loudness.TargetLufs;
+        if (target < minimum || target > maximum) return;
+        var y = Map(target, minimum, maximum);
+        var brush = new SolidColorBrush(Color.FromRgb(255, 138, 128));
+        context.DrawLine(new Pen(brush, 1) { DashStyle = DashStyles.Dash }, new Point(0, y), new Point(ActualWidth, y));
+        var text = new FormattedText($"Target {target:0} LU", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"), 10, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        context.DrawText(text, new Point(ActualWidth - text.Width - 6, y - text.Height - 1));
     }
 
     private void DrawCaption(DrawingContext context)
