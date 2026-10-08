@@ -4,6 +4,10 @@ obj/
 TestResults/
 work/
 .superpowers/
+docs/superpowers/
 release/AAAnalyzer-*/
 *.user
 temp/
+TODO.md
+DONE.md
+PLAN.md
