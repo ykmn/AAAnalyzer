@@ -28,6 +28,7 @@ internal static class Strings
         ["UrlLibraryMoveUpTip"] = ("Move up", "Переместить выше"),
         ["UrlLibraryMoveDownTip"] = ("Move down", "Переместить ниже"),
         ["UrlLibraryImport"] = ("Import playlist…", "Импорт плейлиста…"),
+        ["UrlLibraryExport"] = ("Export playlist…", "Экспорт плейлиста…"),
         ["UrlLibraryPlaylistFilter"] = ("Playlists (*.m3u, *.m3u8)", "Плейлисты (*.m3u, *.m3u8)"),
         ["Reset"] = ("RESET", "СБРОС"),
         ["Png"] = ("PNG", "PNG"),
