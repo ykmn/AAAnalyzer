@@ -33,7 +33,7 @@ public sealed class AudioAnalysisEngineSourceTests
 
     private sealed class FakeCaptureFactory : IAudioCaptureFactory
     {
-        public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode = default) => throw new NotSupportedException();
+        public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode) => throw new NotSupportedException();
     }
 
     private sealed class FakeAudioSource : IAudioSource

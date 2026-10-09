@@ -32,7 +32,7 @@ public sealed class EngineNotificationsTests
     {
         public List<OutputDeviceInfo> RequestedDevices { get; } = [];
 
-        public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode = default)
+        public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode)
         {
             RequestedDevices.Add(device);
             return new FakeCapture();

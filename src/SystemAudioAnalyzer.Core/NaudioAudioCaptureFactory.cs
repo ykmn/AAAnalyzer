@@ -4,7 +4,7 @@ namespace SystemAudioAnalyzer.Core;
 
 public sealed class NaudioAudioCaptureFactory : IAudioCaptureFactory
 {
-    public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode = FaderMode.PreFader)
+    public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode)
     {
         ArgumentNullException.ThrowIfNull(device);
 

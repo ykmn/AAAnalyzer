@@ -1,4 +1,3 @@
-using SystemAudioAnalyzer.Core;
 using Xunit;
 
 namespace SystemAudioAnalyzer.Core.Tests;

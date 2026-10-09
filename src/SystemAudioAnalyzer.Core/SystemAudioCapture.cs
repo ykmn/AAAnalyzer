@@ -70,8 +70,9 @@ public sealed class SystemAudioCapture : IAudioCapture
         SamplesAvailable?.Invoke(this, new AudioSamplesAvailableEventArgs(samples, format));
     }
 
-    /// <summary>Applies the master-volume gain for post-fader mode in place. Muted audio becomes
-    /// silence rather than merely attenuated, matching what a listener actually hears.</summary>
+    /// <summary>Scales the buffer in place and returns it for post-fader mode, applying the master-volume
+    /// gain (muted audio becomes silence rather than merely attenuated, matching what a listener actually
+    /// hears); pre-fader mode returns the buffer untouched.</summary>
     internal static float[] ApplyFaderGain(float[] samples, FaderMode faderMode, IEndpointVolumeReader volumeReader)
     {
         if (faderMode == FaderMode.PreFader)
