@@ -82,6 +82,19 @@ public sealed class MeteringHistoryTests
         Assert.Empty(loudness.GetVisiblePoints(timestamp));
     }
 
+    [Fact]
+    public void LoudnessHistoryKeepsTheBreakFlagOfARestartedPoint()
+    {
+        var history = new LoudnessHistory(TimeSpan.FromMinutes(1));
+        var start = DateTimeOffset.Parse("2026-10-07T12:00:00Z");
+
+        history.Append(start, new LoudnessMeasurement(-20f, null, null));
+        history.Append(start.AddMilliseconds(500), new LoudnessMeasurement(-18f, null, null), isBreak: true);
+        history.Append(start.AddMilliseconds(515), new LoudnessMeasurement(-18f, null, null));
+
+        Assert.Equal([false, true, false], history.GetVisiblePoints(start.AddSeconds(1)).Select(point => point.IsBreak));
+    }
+
     private static AnalysisFrame CreateStereoFrame(float[] left, float[] right)
     {
         var format = new AudioFormat(48_000, 2);

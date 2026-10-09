@@ -22,6 +22,7 @@ public sealed class WaterfallView : FrameworkElement
     private WriteableBitmap? _rightBitmap;
     private WaterfallPixelSettings _pixels = WaterfallPixelSettings.From(MeasurementSettings.Default);
     private double _cursor = 0.5;
+    private bool _breakPending;
 
     public WaterfallView()
     {
@@ -74,11 +75,15 @@ public sealed class WaterfallView : FrameworkElement
 
     private void AppendFrame(AnalysisFrame frame)
     {
+        // The first frames after a restart have no spectrum yet (the FFT window is still filling), so the flag must
+        // wait for the first frame that actually adds a row.
+        _breakPending |= frame.IsDiscontinuity;
         var stereo = frame.AdvancedMeasurements?.StereoSpectrum;
         if (stereo is null || _left is null || _right is null) return;
         var sampleRate = frame.Format.SampleRate;
-        _left.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Left.Magnitudes, sampleRate, stereo.Left.FftSize, _left.Width, _pixels));
-        _right.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Right.Magnitudes, sampleRate, stereo.Right.FftSize, _right.Width, _pixels));
+        _left.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Left.Magnitudes, sampleRate, stereo.Left.FftSize, _left.Width, _pixels), _breakPending);
+        _right.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Right.Magnitudes, sampleRate, stereo.Right.FftSize, _right.Width, _pixels), _breakPending);
+        _breakPending = false;
     }
 
     private double _buffersWindowSeconds;

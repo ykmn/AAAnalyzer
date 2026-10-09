@@ -76,6 +76,33 @@ public sealed class WaterfallBitmapBufferTests
     }
 
     [Fact]
+    public void RestartLeavesBackgroundEvenAfterAShortGap()
+    {
+        var buffer = new WaterfallBitmapBuffer(3, 10, TimeSpan.FromSeconds(60), Black);
+        buffer.Append(Start, Row(0xFF111111));
+
+        var scrolled = buffer.Append(Start.AddMilliseconds(800), Row(0xFF222222), discontinuity: true);
+
+        Assert.True(scrolled);
+        Assert.Equal(0xFF222222u, RowColor(buffer, 0));
+        Assert.Equal(Black, RowColor(buffer, 1));
+        Assert.Equal(0xFF111111u, RowColor(buffer, 2));
+    }
+
+    [Fact]
+    public void RowsAfterARestartScrollNormally()
+    {
+        var buffer = new WaterfallBitmapBuffer(3, 10, TimeSpan.FromSeconds(10), Black);
+        buffer.Append(Start, Row(0xFF111111));
+        buffer.Append(Start.AddMilliseconds(800), Row(0xFF222222), discontinuity: true);
+
+        buffer.Append(Start.AddMilliseconds(1_800), Row(0xFF333333));
+
+        Assert.Equal(0xFF333333u, RowColor(buffer, 0));
+        Assert.Equal(0xFF222222u, RowColor(buffer, 1));
+    }
+
+    [Fact]
     public void ClearRestoresBackgroundAndRestartsTiming()
     {
         var buffer = new WaterfallBitmapBuffer(3, 4, TimeSpan.FromSeconds(10), Black);

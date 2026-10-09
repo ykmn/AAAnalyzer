@@ -61,7 +61,8 @@ public sealed record LoudnessHistoryPoint(
     DateTimeOffset Timestamp,
     float? MomentaryLufs,
     float? ShortTermLufs,
-    float? IntegratedLufs)
+    float? IntegratedLufs,
+    bool IsBreak = false)
 {
     public float? Lufs => MomentaryLufs;
 }
@@ -87,7 +88,7 @@ public sealed class LoudnessHistory
         Trim(timestamp);
     }
 
-    public void Append(DateTimeOffset timestamp, LoudnessMeasurement measurement)
+    public void Append(DateTimeOffset timestamp, LoudnessMeasurement measurement, bool isBreak = false)
     {
         ArgumentNullException.ThrowIfNull(measurement);
 
@@ -95,7 +96,8 @@ public sealed class LoudnessHistory
             timestamp,
             measurement.MomentaryLufs,
             measurement.ShortTermLufs,
-            measurement.IntegratedLufs));
+            measurement.IntegratedLufs,
+            isBreak));
         Trim(timestamp);
     }
 

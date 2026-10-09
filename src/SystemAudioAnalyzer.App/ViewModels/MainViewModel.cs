@@ -13,7 +13,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly IAnalyzerController _controller;
     private readonly SynchronizationContext? _synchronizationContext;
     private readonly Dispatcher? _dispatcher;
-    private AnalysisFrame? _pendingFrame;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<AnalysisFrame> _pendingFrames = new();
     private int _frameDrainQueued;
     private SourceMode _selectedSourceMode;
     private OutputDeviceInfo? _selectedDevice;
@@ -459,11 +459,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     // Frames arrive faster than a busy UI can draw them. Queueing each one at Normal priority starves input (Normal
-    // outranks Input) and the backlog is replayed in a burst, so only the newest frame is kept and it is applied
-    // below input priority.
+    // outranks Input) and the backlog is replayed in a burst, so only the newest frame is applied, below input
+    // priority. A discontinuity frame (the first after a restart) is never skipped: the views need it to break
+    // their history.
     private void OnFrameAvailable(object? sender, AnalysisFrame frame)
     {
-        Volatile.Write(ref _pendingFrame, frame);
+        _pendingFrames.Enqueue(frame);
         if (Interlocked.Exchange(ref _frameDrainQueued, 1) != 0) return;
         if (_dispatcher is not null) _dispatcher.BeginInvoke(DispatcherPriority.Render, DrainFrame);
         else RunOnUi(DrainFrame);
@@ -472,7 +473,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void DrainFrame()
     {
         Volatile.Write(ref _frameDrainQueued, 0);
-        if (Interlocked.Exchange(ref _pendingFrame, null) is { } frame) ApplyFrame(frame);
+        AnalysisFrame? latest = null;
+        while (_pendingFrames.TryDequeue(out var frame))
+        {
+            if (latest is { IsDiscontinuity: true }) ApplyFrame(latest);
+            latest = frame;
+        }
+
+        if (latest is not null) ApplyFrame(latest);
     }
 
     private void ApplyFrame(AnalysisFrame frame)

@@ -102,7 +102,7 @@ public sealed class LoudnessView : FrameworkElement
     private static void OnFrameChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         if (args.NewValue is AnalysisFrame frame && frame.AdvancedMeasurements is { } measurements)
-            ((LoudnessView)target)._history.Append(frame.Timestamp, measurements.Loudness);
+            ((LoudnessView)target)._history.Append(frame.Timestamp, measurements.Loudness, frame.IsDiscontinuity);
     }
 
     private void DrawSeries(DrawingContext context, IReadOnlyList<LoudnessHistoryPoint> points, Func<LoudnessHistoryPoint, float?> select, double min, double max, DateTimeOffset now, TimeSpan visibleDuration)
@@ -111,7 +111,7 @@ public sealed class LoudnessView : FrameworkElement
         for (var index = 0; index < points.Count; index++)
         {
             // A long pause between samples means analysis was stopped: leave a gap instead of bridging it.
-            if (index > 0 && points[index].Timestamp - points[index - 1].Timestamp > MaxSampleGap) previous = null;
+            if (points[index].IsBreak || (index > 0 && points[index].Timestamp - points[index - 1].Timestamp > MaxSampleGap)) previous = null;
             var value = select(points[index]);
             if (!value.HasValue) { previous = null; continue; }
             var secondsAgo = (now - points[index].Timestamp).TotalSeconds;

@@ -10,7 +10,8 @@ public sealed class AnalysisFrame
         IEnumerable<ChannelLevel> levels,
         Spectrum? spectrum,
         long droppedBufferCount = 0,
-        AdvancedMeasurementFrame? advancedMeasurements = null)
+        AdvancedMeasurementFrame? advancedMeasurements = null,
+        bool isDiscontinuity = false)
     {
         ArgumentNullException.ThrowIfNull(format);
         ArgumentNullException.ThrowIfNull(levels);
@@ -21,6 +22,7 @@ public sealed class AnalysisFrame
         Spectrum = spectrum;
         DroppedBufferCount = droppedBufferCount;
         AdvancedMeasurements = advancedMeasurements;
+        IsDiscontinuity = isDiscontinuity;
     }
 
     public DateTimeOffset Timestamp { get; }
@@ -34,4 +36,8 @@ public sealed class AnalysisFrame
     public long DroppedBufferCount { get; }
 
     public AdvancedMeasurementFrame? AdvancedMeasurements { get; }
+
+    /// <summary>True for the first frame after the source was (re)started: what came before is unrelated audio, so a
+    /// history display must not join the two.</summary>
+    public bool IsDiscontinuity { get; }
 }

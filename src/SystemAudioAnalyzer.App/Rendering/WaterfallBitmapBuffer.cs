@@ -30,7 +30,7 @@ public sealed class WaterfallBitmapBuffer
     public uint[] Pixels { get; }
 
     /// <summary>Adds a row; returns true when older rows moved down, false when the top row was only refreshed.</summary>
-    public bool Append(DateTimeOffset timestamp, ReadOnlySpan<uint> row)
+    public bool Append(DateTimeOffset timestamp, ReadOnlySpan<uint> row, bool discontinuity = false)
     {
         if (row.Length != Width) throw new ArgumentException("Row length must equal the buffer width.", nameof(row));
         var scroll = 1;
@@ -38,7 +38,7 @@ public sealed class WaterfallBitmapBuffer
         var paused = false;
         if (_last is { } last)
         {
-            paused = timestamp - last > MaxRowGap;
+            paused = discontinuity || timestamp - last > MaxRowGap;
             _carry += Math.Max(0d, (timestamp - last).TotalSeconds) / _window.TotalSeconds * Height;
             scroll = (int)Math.Floor(_carry);
             if (scroll < 1)
@@ -49,6 +49,15 @@ public sealed class WaterfallBitmapBuffer
             else
             {
                 _carry -= scroll;
+            }
+
+            // A restart must always show a break, however short the real gap was: one background line at least.
+            if (discontinuity && scroll < 2)
+            {
+                scroll = Math.Min(2, Height);
+                scrolled = true;
+                _carry = 0;
+                paused = true;
             }
         }
 

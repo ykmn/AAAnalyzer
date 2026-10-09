@@ -14,6 +14,27 @@ public sealed class AudioAnalysisEngineTests
     }
 
     [Fact]
+    public async Task OnlyTheFirstFrameAfterStartIsMarkedAsDiscontinuity()
+    {
+        var capture = new FakeCapture();
+        var device = new OutputDeviceInfo("default", "Speakers", true);
+        await using var engine = new AudioAnalysisEngine(new FakeDeviceProvider(device), new FakeCaptureFactory(capture));
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await engine.StartAsync();
+        await using var frames = engine.ReadFrames(cancellation.Token).GetAsyncEnumerator(cancellation.Token);
+        var format = new AudioFormat(48_000, 2);
+
+        capture.Publish(new float[4096], format);
+        Assert.True(await frames.MoveNextAsync());
+        Assert.True(frames.Current.IsDiscontinuity);
+
+        await Task.Delay(40, cancellation.Token);
+        capture.Publish(new float[4096], format);
+        Assert.True(await frames.MoveNextAsync());
+        Assert.False(frames.Current.IsDiscontinuity);
+    }
+
+    [Fact]
     public async Task LiveUpdatesAdoptLatestConfigurationWithoutRestartingOrKeepingOldFftSamples()
     {
         var capture = new FakeCapture();

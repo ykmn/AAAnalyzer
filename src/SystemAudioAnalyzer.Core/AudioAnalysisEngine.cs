@@ -303,6 +303,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
         Spectrum? pendingSpectrum = null;
         StereoSpectrum? pendingStereo = null;
         var chunker = new FixedChunker(ChunkFrames);
+        var firstFrame = true;
         var due = System.Diagnostics.Stopwatch.GetTimestamp();
         while (WaitForBuffers(samples, cancellationToken))
         while (samples.TryRead(out var queued))
@@ -375,7 +376,8 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
                     droppedBufferCount));
             }
 
-            frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, pendingLevels!, pendingSpectrum, droppedBufferCount, advancedMeasurements));
+            frames.TryWrite(new AnalysisFrame(timestamp, buffer.Format, pendingLevels!, pendingSpectrum, droppedBufferCount, advancedMeasurements, isDiscontinuity: firstFrame));
+            firstFrame = false;
             pendingPeaks = [];
             pendingLevels = null;
             // The newest spectrum stays until a newer one replaces it: a slice shorter than the FFT hop has none of its own.
