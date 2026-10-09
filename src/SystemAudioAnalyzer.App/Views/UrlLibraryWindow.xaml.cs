@@ -52,4 +52,23 @@ public partial class UrlLibraryWindow : Window
             _diagnostic($"Playlist import failed: {exception.Message}");
         }
     }
+
+    private async void ExportPlaylist(object sender, RoutedEventArgs eventArgs)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = Localization.Localizer.T("UrlLibraryPlaylistFilter") + "|*.m3u8",
+            FileName = "library.m3u8",
+        };
+        if (dialog.ShowDialog(this) != true) return;
+
+        try
+        {
+            await File.WriteAllLinesAsync(dialog.FileName, M3uPlaylistWriter.Write(_viewModel.Entries));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _diagnostic($"Playlist export failed: {exception.Message}");
+        }
+    }
 }

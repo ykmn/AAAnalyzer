@@ -71,6 +71,22 @@ public sealed class UrlLibraryTests
     }
 
     [Fact]
+    public void WriterRoundTripsThroughTheParser()
+    {
+        var entries = new[]
+        {
+            new UrlLibraryEntry("Radio One", "http://radio.example/one"),
+            new UrlLibraryEntry("Radio Two", "http://radio.example/two"),
+        };
+
+        var lines = M3uPlaylistWriter.Write(entries).ToArray();
+        var parsed = M3uPlaylistParser.Parse(lines);
+
+        Assert.Equal("#EXTM3U", lines[0]);
+        Assert.Equal(entries, parsed);
+    }
+
+    [Fact]
     public void ImportSkipsUrlsAlreadyInTheLibrary()
     {
         var viewModel = new SystemAudioAnalyzer.App.ViewModels.UrlLibraryViewModel();

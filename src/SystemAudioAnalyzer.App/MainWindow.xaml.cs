@@ -67,6 +67,10 @@ public partial class MainWindow : Window
     private void OpenUrlLibrary(object sender, RoutedEventArgs eventArgs)
     {
         _urlLibraryWindow ??= new Views.UrlLibraryWindow(_urlLibraryViewModel, _logger.Write) { Owner = this };
+        _urlLibraryWindow.Width = Math.Max(_urlLibraryWindow.MinWidth, ActualWidth * 0.7);
+        _urlLibraryWindow.Height = Math.Max(_urlLibraryWindow.MinHeight, ActualHeight * 0.7);
+        _urlLibraryWindow.Left = Left + ((ActualWidth - _urlLibraryWindow.Width) / 2);
+        _urlLibraryWindow.Top = Top + ((ActualHeight - _urlLibraryWindow.Height) / 2);
         _urlLibraryWindow.Show();
         _urlLibraryWindow.Activate();
     }
