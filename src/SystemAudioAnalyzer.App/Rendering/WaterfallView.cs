@@ -15,7 +15,7 @@ public sealed class WaterfallView : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
 
     private const uint Background = 0xFF000000;
-    private static readonly TimeSpan Window = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan Window = TimeSpan.FromSeconds(20);
 
     private WaterfallBitmapBuffer? _left;
     private WaterfallBitmapBuffer? _right;
