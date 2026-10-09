@@ -144,9 +144,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(IsPreFader));
                 OnPropertyChanged(nameof(IsPostFader));
+                OnPropertyChanged(nameof(FaderModeLabel));
             }
         }
     }
+
+    public string FaderModeLabel => IsPreFader ? Localizer.T("FaderPre") : Localizer.T("FaderPost");
+
+    public void ToggleFaderMode() =>
+        SelectedFaderMode = SelectedFaderMode == FaderMode.PreFader ? FaderMode.PostFader : FaderMode.PreFader;
 
     public bool IsPreFader
     {
@@ -495,6 +501,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RtaTargetText));
         OnPropertyChanged(nameof(LoudnessScaleText));
         OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(FaderModeLabel));
     }
 
     private void RunOnUi(Action action)

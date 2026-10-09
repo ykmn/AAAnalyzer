@@ -52,6 +52,7 @@ public sealed class SystemAudioCapture : IAudioCapture
         _capture.DataAvailable -= OnDataAvailable;
         _capture.RecordingStopped -= OnRecordingStopped;
         _capture.Dispose();
+        (_volumeReader as IDisposable)?.Dispose();
         _device.Dispose();
         _enumerator.Dispose();
         GC.SuppressFinalize(this);
@@ -70,20 +71,27 @@ public sealed class SystemAudioCapture : IAudioCapture
         SamplesAvailable?.Invoke(this, new AudioSamplesAvailableEventArgs(samples, format));
     }
 
-    /// <summary>Scales the buffer in place and returns it for post-fader mode, applying the master-volume
-    /// gain (muted audio becomes silence rather than merely attenuated, matching what a listener actually
-    /// hears); pre-fader mode returns the buffer untouched.</summary>
+    /// <summary>WASAPI loopback capture taps the signal after Windows has already applied the endpoint's master
+    /// volume and mute, so the raw buffer IS the post-fader signal; post-fader mode therefore returns it untouched.
+    /// Pre-fader mode divides out the current gain to reconstruct the signal as it was before the fader. When muted
+    /// or at zero gain, Windows has already discarded the original signal before capture (the loopback buffer is
+    /// silence), so there is nothing to recover and the buffer is returned as-is.</summary>
     internal static float[] ApplyFaderGain(float[] samples, FaderMode faderMode, IEndpointVolumeReader volumeReader)
     {
-        if (faderMode == FaderMode.PreFader)
+        if (faderMode == FaderMode.PostFader)
         {
             return samples;
         }
 
-        var gain = volumeReader.IsMuted ? 0f : volumeReader.Scalar;
+        if (volumeReader.IsMuted) return samples;
+
+        var gain = volumeReader.Scalar;
+        if (gain <= 0f) return samples;
+
+        var inverseGain = 1f / gain;
         for (var i = 0; i < samples.Length; i++)
         {
-            samples[i] *= gain;
+            samples[i] *= inverseGain;
         }
 
         return samples;
