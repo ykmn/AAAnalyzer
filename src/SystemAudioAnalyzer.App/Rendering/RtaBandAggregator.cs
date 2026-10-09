@@ -35,7 +35,9 @@ public sealed class RtaBandAggregator
     {
         var bandsPerOctave = GetBandsPerOctave(resolution);
         var firstIndex = (int)Math.Ceiling(bandsPerOctave * Math.Log2(FrequencyScale.MinimumHertz / 1_000d));
-        var lastIndex = (int)Math.Floor(bandsPerOctave * Math.Log2(maxHertz / 1_000d));
+        // Guard against a maxHertz below MinimumHertz (e.g. mid-edit in Settings) producing a negative range, which
+        // would make the List<RtaBand> capacity below negative and throw.
+        var lastIndex = Math.Max(firstIndex, (int)Math.Floor(bandsPerOctave * Math.Log2(Math.Max(maxHertz, FrequencyScale.MinimumHertz) / 1_000d)));
         var bands = new List<RtaBand>(lastIndex - firstIndex + 1);
 
         for (var index = firstIndex; index <= lastIndex; index++)

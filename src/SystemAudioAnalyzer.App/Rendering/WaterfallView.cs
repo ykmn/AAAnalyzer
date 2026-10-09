@@ -87,7 +87,7 @@ public sealed class WaterfallView : FrameworkElement
     {
         var width = Math.Max(1, (int)Math.Round(layout.LeftBounds.Width));
         var height = Math.Max(1, (int)Math.Round(layout.LeftBounds.Height));
-        var windowSeconds = Settings.Waterfall.WindowSeconds;
+        var windowSeconds = Math.Max(1, Settings.Waterfall.WindowSeconds);
         if (_left is not null && _left.Width == width && _left.Height == height && _buffersWindowSeconds == windowSeconds) return;
         _buffersWindowSeconds = windowSeconds;
         var window = TimeSpan.FromSeconds(windowSeconds);
@@ -111,8 +111,7 @@ public sealed class WaterfallView : FrameworkElement
     {
         var x = layout.LeftBounds.Left + (layout.LeftBounds.Width * _cursor);
         context.DrawLine(new Pen(ColorBrush(Settings.Analyzer.CursorColor), 1), new Point(x, layout.LeftBounds.Top), new Point(x, layout.RightBounds.Bottom));
-        var maxHertz = Settings.Analyzer.MaxFrequencyHz;
-        var hertz = Math.Clamp(FrequencyScale.ToHertz(_cursor, Settings.Analyzer.FrequencyScale, maxHertz), FrequencyScale.MinimumHertz, maxHertz);
+        var hertz = FrequencyScale.ToHertz(_cursor, Settings.Analyzer.FrequencyScale, Settings.Analyzer.MaxFrequencyHz);
         var text = Format(FrequencyScale.Format(hertz), 11, Brushes.White);
         var plaque = new Rect(Math.Clamp(x - text.Width - 8, 0, Math.Max(0, ActualWidth - text.Width - 8)), 3, text.Width + 8, text.Height + 2);
         context.DrawRectangle(Brushes.Black, null, plaque);
@@ -130,7 +129,7 @@ public sealed class WaterfallView : FrameworkElement
             context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(x, axis.Top), new Point(x, axis.Top + 4));
             var text = Format(label.Label, 10, textBrush);
             var left = Math.Clamp(x - (text.Width / 2), 1, Math.Max(1, axis.Width - text.Width - 1));
-            if (left < lastRight + 6) continue;
+            if (left < lastRight + 2) continue;
             context.DrawText(text, new Point(left, axis.Top + 4));
             lastRight = left + text.Width;
         }

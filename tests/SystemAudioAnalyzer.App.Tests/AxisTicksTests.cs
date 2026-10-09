@@ -64,7 +64,7 @@ public sealed class AxisTicksTests
 
         Assert.True(labels.Count >= 20);
         Assert.Equal(20, labels[0].Hertz);
-        Assert.Equal(20_000, labels[^1].Hertz);
+        Assert.Equal(24_000, labels[^1].Hertz);
     }
 
     [Fact]

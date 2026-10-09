@@ -12,7 +12,12 @@ public readonly record struct TimeTick(double SecondsAgo, string Label);
 public static class AxisTicks
 {
     private static readonly double[] RtaHertz = [20, 28, 40, 56, 80, 112, 160, 224, 315, 450, 630, 900, 1_300, 1_800, 2_500, 3_600, 5_000, 7_100, 10_000, 14_000, 20_000];
-    private static readonly double[] WaterfallHertz = [20, 30, 40, 50, 60, 80, 100, 200, 300, 400, 500, 600, 800, 1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 8_000, 10_000, 15_000, 20_000];
+    private static readonly double[] WaterfallHertz =
+    [
+        20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900,
+        1_000, 1_500, 2_000, 3_000, 4_000, 5_000, 6_000, 7_000, 8_000, 9_000,
+        10_000, 12_000, 14_000, 16_000, 18_000, 20_000, 22_000, 24_000,
+    ];
     private static readonly int[] TimeSteps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1_800, 3_600, 7_200, 14_400];
 
     public static IReadOnlyList<AxisTick> PeakRailDb(double rangeDb, double stepDb = 3)

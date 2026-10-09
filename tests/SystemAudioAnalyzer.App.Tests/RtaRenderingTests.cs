@@ -33,6 +33,18 @@ public sealed class RtaRenderingTests
         Assert.All(bands, band => Assert.Equal(0.5f, band.Magnitude, 4));
     }
 
+    // Regression: a maxHertz typed mid-edit in Settings can transiently fall below MinimumHertz, which used to
+    // make the band-count range negative and throw on `new List<RtaBand>(negativeCapacity)`.
+    [Fact]
+    public void AggregateDoesNotThrowWhenMaxHertzIsBelowMinimumHertz()
+    {
+        var spectrum = new Spectrum(48_000, 4_096, Enumerable.Repeat(0.5f, 2_049));
+
+        var bands = RtaBandAggregator.Aggregate(spectrum, RtaResolution.OneTwelfth, maxHertz: 2d);
+
+        Assert.NotEmpty(bands);
+    }
+
     [Fact]
     public void BandsWithoutABinInterpolateBetweenNeighbouringBins()
     {

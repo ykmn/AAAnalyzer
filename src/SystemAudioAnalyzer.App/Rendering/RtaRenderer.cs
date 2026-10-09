@@ -21,8 +21,7 @@ public static class RtaRenderer
         {
             for (var index = 1; index < spectrum.Magnitudes.Count; index++)
             {
-                var frequency = Math.Clamp(spectrum.GetFrequencyHz(index), FrequencyScale.MinimumHertz, settings.MaxFrequencyHz);
-                var normalizedFrequency = FrequencyScale.ToNormalized(frequency, settings.FrequencyScale, settings.MaxFrequencyHz);
+                var normalizedFrequency = FrequencyScale.ToNormalized(spectrum.GetFrequencyHz(index), settings.FrequencyScale, settings.MaxFrequencyHz);
                 var magnitude = SpectrumDisplayScale.ToNormalizedAmplitude(spectrum.Magnitudes[index], settings.Gain, settings.AmplitudeScale, settings.DisplayFloorDb);
                 var point = new Point(
                     bounds.Left + (normalizedFrequency * bounds.Width),
