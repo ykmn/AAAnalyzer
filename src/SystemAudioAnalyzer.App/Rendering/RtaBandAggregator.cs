@@ -25,17 +25,17 @@ public sealed class RtaBandAggregator
     private RtaResolution? _resolution;
     private RtaChannelMode? _source;
 
-    public static IReadOnlyList<RtaBand> Aggregate(Spectrum spectrum, RtaResolution resolution)
+    public static IReadOnlyList<RtaBand> Aggregate(Spectrum spectrum, RtaResolution resolution, double maxHertz = 20_000)
     {
         ArgumentNullException.ThrowIfNull(spectrum);
-        return Aggregate(spectrum.SampleRate, spectrum.FftSize, spectrum.Magnitudes, resolution);
+        return Aggregate(spectrum.SampleRate, spectrum.FftSize, spectrum.Magnitudes, resolution, maxHertz);
     }
 
-    private static IReadOnlyList<RtaBand> Aggregate(int sampleRate, int fftSize, IReadOnlyList<float> magnitudes, RtaResolution resolution)
+    private static IReadOnlyList<RtaBand> Aggregate(int sampleRate, int fftSize, IReadOnlyList<float> magnitudes, RtaResolution resolution, double maxHertz)
     {
         var bandsPerOctave = GetBandsPerOctave(resolution);
         var firstIndex = (int)Math.Ceiling(bandsPerOctave * Math.Log2(FrequencyScale.MinimumHertz / 1_000d));
-        var lastIndex = (int)Math.Floor(bandsPerOctave * Math.Log2(FrequencyScale.MaximumHertz / 1_000d));
+        var lastIndex = (int)Math.Floor(bandsPerOctave * Math.Log2(maxHertz / 1_000d));
         var bands = new List<RtaBand>(lastIndex - firstIndex + 1);
 
         for (var index = firstIndex; index <= lastIndex; index++)
@@ -58,7 +58,8 @@ public sealed class RtaBandAggregator
         double releaseDbPerSecond,
         double peakHoldMilliseconds,
         bool showPeakCaps,
-        DateTimeOffset timestamp)
+        DateTimeOffset timestamp,
+        double maxHertz = 20_000)
     {
         ArgumentNullException.ThrowIfNull(spectrum);
         if (averagingCount is < 1 or > MaximumAveragingCount)
@@ -95,7 +96,7 @@ public sealed class RtaBandAggregator
         var averaged = new float[_sumSpectrum.Length];
         for (var bin = 0; bin < averaged.Length; bin++) averaged[bin] = _sumSpectrum[bin] / _spectra.Count;
 
-        var rawBands = Aggregate(spectrum.SampleRate, spectrum.FftSize, averaged, resolution);
+        var rawBands = Aggregate(spectrum.SampleRate, spectrum.FftSize, averaged, resolution, maxHertz);
         if (_displayDb.Length != rawBands.Count)
         {
             _displayDb = Enumerable.Repeat(double.NegativeInfinity, rawBands.Count).ToArray();

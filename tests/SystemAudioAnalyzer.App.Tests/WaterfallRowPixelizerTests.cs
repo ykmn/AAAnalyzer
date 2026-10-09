@@ -8,7 +8,7 @@ public sealed class WaterfallRowPixelizerTests
     private static WaterfallPixelSettings Settings()
     {
         ColorStop[] stops = [new(-100, "#000000"), new(0, "#FFFFFF")];
-        return new WaterfallPixelSettings(WaterfallRenderer.CreateArgbPalette(-100, 0, stops), -100, 0, stops, 1, AnalyzerFrequencyScale.Logarithmic);
+        return new WaterfallPixelSettings(WaterfallRenderer.CreateArgbPalette(-100, 0, stops), -100, 0, stops, 1, AnalyzerFrequencyScale.Logarithmic, 20_000);
     }
 
     [Fact]

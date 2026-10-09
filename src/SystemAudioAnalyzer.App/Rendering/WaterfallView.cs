@@ -15,7 +15,6 @@ public sealed class WaterfallView : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
 
     private const uint Background = 0xFF000000;
-    private static readonly TimeSpan Window = TimeSpan.FromSeconds(20);
 
     private WaterfallBitmapBuffer? _left;
     private WaterfallBitmapBuffer? _right;
@@ -82,13 +81,18 @@ public sealed class WaterfallView : FrameworkElement
         _right.Append(frame.Timestamp, WaterfallRowPixelizer.CreateRow(stereo.Right.Magnitudes, sampleRate, stereo.Right.FftSize, _right.Width, _pixels));
     }
 
+    private double _buffersWindowSeconds;
+
     private void EnsureBuffers(WaterfallLayout layout)
     {
         var width = Math.Max(1, (int)Math.Round(layout.LeftBounds.Width));
         var height = Math.Max(1, (int)Math.Round(layout.LeftBounds.Height));
-        if (_left is not null && _left.Width == width && _left.Height == height) return;
-        _left = new WaterfallBitmapBuffer(width, height, Window, Background);
-        _right = new WaterfallBitmapBuffer(width, height, Window, Background);
+        var windowSeconds = Settings.Waterfall.WindowSeconds;
+        if (_left is not null && _left.Width == width && _left.Height == height && _buffersWindowSeconds == windowSeconds) return;
+        _buffersWindowSeconds = windowSeconds;
+        var window = TimeSpan.FromSeconds(windowSeconds);
+        _left = new WaterfallBitmapBuffer(width, height, window, Background);
+        _right = new WaterfallBitmapBuffer(width, height, window, Background);
         _leftBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
         _rightBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
     }
@@ -107,7 +111,8 @@ public sealed class WaterfallView : FrameworkElement
     {
         var x = layout.LeftBounds.Left + (layout.LeftBounds.Width * _cursor);
         context.DrawLine(new Pen(ColorBrush(Settings.Analyzer.CursorColor), 1), new Point(x, layout.LeftBounds.Top), new Point(x, layout.RightBounds.Bottom));
-        var hertz = Math.Clamp(FrequencyScale.ToHertz(_cursor, Settings.Analyzer.FrequencyScale), FrequencyScale.MinimumHertz, FrequencyScale.MaximumHertz);
+        var maxHertz = Settings.Analyzer.MaxFrequencyHz;
+        var hertz = Math.Clamp(FrequencyScale.ToHertz(_cursor, Settings.Analyzer.FrequencyScale, maxHertz), FrequencyScale.MinimumHertz, maxHertz);
         var text = Format(FrequencyScale.Format(hertz), 11, Brushes.White);
         var plaque = new Rect(Math.Clamp(x - text.Width - 8, 0, Math.Max(0, ActualWidth - text.Width - 8)), 3, text.Width + 8, text.Height + 2);
         context.DrawRectangle(Brushes.Black, null, plaque);
@@ -121,7 +126,7 @@ public sealed class WaterfallView : FrameworkElement
         var lastRight = double.NegativeInfinity;
         foreach (var label in AxisTicks.WaterfallFrequencyLabels())
         {
-            var x = FrequencyScale.ToNormalized(label.Hertz, Settings.Analyzer.FrequencyScale) * axis.Width;
+            var x = FrequencyScale.ToNormalized(label.Hertz, Settings.Analyzer.FrequencyScale, Settings.Analyzer.MaxFrequencyHz) * axis.Width;
             context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(x, axis.Top), new Point(x, axis.Top + 4));
             var text = Format(label.Label, 10, textBrush);
             var left = Math.Clamp(x - (text.Width / 2), 1, Math.Max(1, axis.Width - text.Width - 1));
@@ -131,26 +136,34 @@ public sealed class WaterfallView : FrameworkElement
         }
     }
 
-    /// <summary>Time-since-now scale in the gutter to the right of each channel: 0 at the top (newest), -Window at the bottom (oldest).</summary>
+    /// <summary>Time-since-now scale in the gutter to the right of each channel: 0 at the top (newest), -WindowSeconds
+    /// at the bottom (oldest). Each gutter is headed with its channel letter (L/R).</summary>
     private void DrawTimeAxis(DrawingContext context, WaterfallLayout layout)
     {
         var textBrush = ColorBrush(Settings.Analyzer.TextColor);
-        DrawTimeAxisColumn(context, layout.TimeAxisLeftBounds, textBrush);
-        DrawTimeAxisColumn(context, layout.TimeAxisRightBounds, textBrush);
+        var windowSeconds = Settings.Waterfall.WindowSeconds;
+        DrawTimeAxisColumn(context, layout.TimeAxisLeftBounds, textBrush, "L", windowSeconds);
+        DrawTimeAxisColumn(context, layout.TimeAxisRightBounds, textBrush, "R", windowSeconds);
     }
 
-    private void DrawTimeAxisColumn(DrawingContext context, Rect bounds, Brush textBrush)
+    private void DrawTimeAxisColumn(DrawingContext context, Rect bounds, Brush textBrush, string channelLabel, double windowSeconds)
     {
+        var channelText = Format(channelLabel, 11, Brushes.White);
+        context.DrawText(channelText, new Point(bounds.Left + 4, bounds.Top));
+
+        var rulerTop = bounds.Top + channelText.Height + 2;
+        var rulerBounds = new Rect(bounds.Left, rulerTop, bounds.Width, Math.Max(0, bounds.Bottom - rulerTop));
+
         const int steps = 5;
         for (var i = 0; i <= steps; i++)
         {
             var fraction = (double)i / steps;
-            var y = bounds.Top + (fraction * bounds.Height);
-            var seconds = fraction * Window.TotalSeconds;
+            var y = rulerBounds.Top + (fraction * rulerBounds.Height);
+            var seconds = fraction * windowSeconds;
             var label = i == 0 ? "0s" : $"-{seconds:0}s";
             context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(bounds.Left, y), new Point(bounds.Left + 4, y));
             var text = Format(label, 9, textBrush);
-            var top = Math.Clamp(y - (text.Height / 2), bounds.Top, bounds.Bottom - text.Height);
+            var top = Math.Clamp(y - (text.Height / 2), rulerBounds.Top, rulerBounds.Bottom - text.Height);
             context.DrawText(text, new Point(bounds.Left + 6, top));
         }
     }

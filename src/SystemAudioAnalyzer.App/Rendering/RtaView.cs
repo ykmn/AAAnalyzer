@@ -63,7 +63,7 @@ public sealed class RtaView : FrameworkElement
         var settings = view.Settings.Rta;
         view._bands = view._aggregator.Update(spectrum, view.Resolution, view.ChannelMode,
             settings.AveragingCount, settings.ReleaseDbPerSecond, settings.PeakHoldMs,
-            settings.ShowPeakHoldCaps, frame.Timestamp);
+            settings.ShowPeakHoldCaps, frame.Timestamp, view.Settings.Analyzer.MaxFrequencyHz);
     }
 
     private const double LeftGutter = 30;

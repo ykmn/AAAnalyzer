@@ -143,11 +143,13 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
     public bool IsLogarithmicAmplitudeScale { get => AnalyzerAmplitudeScale == AnalyzerAmplitudeScale.Logarithmic; set => AnalyzerAmplitudeScale = value ? AnalyzerAmplitudeScale.Logarithmic : AnalyzerAmplitudeScale.Linear; }
     public double AnalyzerFloorDb { get => Current.Analyzer.DisplayFloorDb; set => Update(analyzer: Current.Analyzer with { DisplayFloorDb = value }); }
     public double AnalyzerGain { get => Current.Analyzer.Gain; set => Update(analyzer: Current.Analyzer with { Gain = value }); }
+    public double AnalyzerMaxFrequencyHz { get => Current.Analyzer.MaxFrequencyHz; set => Update(analyzer: Current.Analyzer with { MaxFrequencyHz = value }); }
     public string AnalyzerCursorColor { get => Current.Analyzer.CursorColor; set => Update(analyzer: Current.Analyzer with { CursorColor = value ?? string.Empty }); }
     public string AnalyzerTextColor { get => Current.Analyzer.TextColor; set => Update(analyzer: Current.Analyzer with { TextColor = value ?? string.Empty }); }
 
     public double WaterfallFloorDb { get => Current.Waterfall.DisplayFloorDb; set => Update(waterfall: Current.Waterfall with { DisplayFloorDb = value }); }
     public double WaterfallOffsetDb { get => Current.Waterfall.DisplayOffsetDb; set => Update(waterfall: Current.Waterfall with { DisplayOffsetDb = value }); }
+    public double WaterfallWindowSeconds { get => Current.Waterfall.WindowSeconds; set => Update(waterfall: Current.Waterfall with { WindowSeconds = value }); }
 
     public double MeterAttackMs { get => Current.Meters.AttackMs; set => Update(meters: Current.Meters with { AttackMs = value }); }
     public double MeterReleaseMs { get => Current.Meters.ReleaseMs; set => Update(meters: Current.Meters with { ReleaseMs = value }); }

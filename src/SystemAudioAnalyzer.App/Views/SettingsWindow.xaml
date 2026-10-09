@@ -32,6 +32,7 @@
                 <CheckBox Content="{loc:Tr LogAmplitude}" IsChecked="{Binding IsLogarithmicAmplitudeScale}" Margin="0,4,0,0"/>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr MinLevel}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding AnalyzerFloorDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr Gain}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding AnalyzerGain, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr MaxFrequency}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding AnalyzerMaxFrequencyHz, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr CursorColor}" Width="190" TextWrapping="Wrap"/><Button Tag="AnalyzerCursorColor" Background="{Binding AnalyzerCursorColor}" Click="PickColor" Width="60" Height="23" HorizontalAlignment="Left"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr TextColor}" Width="190" TextWrapping="Wrap"/><Button Tag="AnalyzerTextColor" Background="{Binding AnalyzerTextColor}" Click="PickColor" Width="60" Height="23" HorizontalAlignment="Left"/></DockPanel>
             </StackPanel></ScrollViewer></TabItem>
@@ -39,6 +40,7 @@
             <TabItem Header="{loc:Tr Tab_Waterfall}"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
                 <DockPanel><TextBlock Text="{loc:Tr DisplayFloor}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding WaterfallFloorDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr DisplayOffset}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding WaterfallOffsetDb, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
+                <DockPanel Margin="0,6,0,0"><TextBlock Text="{loc:Tr WaterfallWindow}" Width="190" TextWrapping="Wrap"/><TextBox Text="{Binding WaterfallWindowSeconds, UpdateSourceTrigger=PropertyChanged}"/></DockPanel>
                 <TextBlock Text="{loc:Tr GradientDb}" Margin="0,6,0,2"/>
                 <ListBox ItemsSource="{Binding GradientStops}" SelectedItem="{Binding SelectedGradientStop}" Height="170">
                     <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="2"><Border Width="32" Height="16" Background="{Binding Color}" BorderBrush="#555" BorderThickness="1" Margin="0,0,8,0"/><TextBlock VerticalAlignment="Center"><Run Text="{Binding LevelDb, Mode=OneWay, StringFormat={}{0:G}}"/><Run Text="{loc:Tr UnitDb}"/></TextBlock></DockPanel></DataTemplate></ListBox.ItemTemplate>

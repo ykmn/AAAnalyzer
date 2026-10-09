@@ -2,13 +2,13 @@ using SystemAudioAnalyzer.App.Settings;
 
 namespace SystemAudioAnalyzer.App.Rendering;
 
-public sealed record WaterfallPixelSettings(uint[] Palette, double FloorDb, double OffsetDb, IReadOnlyList<ColorStop> Stops, double Gain, AnalyzerFrequencyScale Scale)
+public sealed record WaterfallPixelSettings(uint[] Palette, double FloorDb, double OffsetDb, IReadOnlyList<ColorStop> Stops, double Gain, AnalyzerFrequencyScale Scale, double MaxHertz)
 {
     public static WaterfallPixelSettings From(MeasurementSettings settings)
     {
         var floor = SpectrumDisplayScale.EffectiveFloor(settings.Analyzer.DisplayFloorDb, settings.Waterfall.DisplayFloorDb);
         var palette = WaterfallRenderer.CreateArgbPalette(floor, settings.Waterfall.DisplayOffsetDb, settings.Waterfall.GradientStops);
-        return new WaterfallPixelSettings(palette, floor, settings.Waterfall.DisplayOffsetDb, settings.Waterfall.GradientStops, settings.Analyzer.Gain, settings.Analyzer.FrequencyScale);
+        return new WaterfallPixelSettings(palette, floor, settings.Waterfall.DisplayOffsetDb, settings.Waterfall.GradientStops, settings.Analyzer.Gain, settings.Analyzer.FrequencyScale, settings.Analyzer.MaxFrequencyHz);
     }
 }
 
@@ -23,8 +23,8 @@ public static class WaterfallRowPixelizer
         var row = new uint[width];
         for (var x = 0; x < width; x++)
         {
-            var lowerHertz = FrequencyScale.ToHertz((double)x / width, settings.Scale);
-            var upperHertz = FrequencyScale.ToHertz((double)(x + 1) / width, settings.Scale);
+            var lowerHertz = FrequencyScale.ToHertz((double)x / width, settings.Scale, settings.MaxHertz);
+            var upperHertz = FrequencyScale.ToHertz((double)(x + 1) / width, settings.Scale, settings.MaxHertz);
             var firstBin = Math.Max(0, (int)Math.Floor(lowerHertz * fftSize / sampleRate));
             var lastBin = Math.Min(magnitudes.Count - 1, (int)Math.Ceiling(upperHertz * fftSize / sampleRate));
             var magnitude = 0f;
