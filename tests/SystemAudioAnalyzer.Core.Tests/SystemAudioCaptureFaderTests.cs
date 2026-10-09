@@ -11,10 +11,21 @@ public sealed class SystemAudioCaptureFaderTests
     }
 
     [Fact]
-    public void PreFaderLeavesSamplesUnchanged()
+    public void PostFaderLeavesSamplesUnchanged()
     {
         var samples = new[] { 0.5f, -0.25f, 1f };
         var reader = new FakeVolumeReader { Scalar = 0.1f, IsMuted = true };
+
+        var result = SystemAudioCapture.ApplyFaderGain(samples, FaderMode.PostFader, reader);
+
+        Assert.Equal(new[] { 0.5f, -0.25f, 1f }, result);
+    }
+
+    [Fact]
+    public void PreFaderDividesOutTheCurrentGain()
+    {
+        var samples = new[] { 0.25f, -0.125f, 0.5f };
+        var reader = new FakeVolumeReader { Scalar = 0.5f, IsMuted = false };
 
         var result = SystemAudioCapture.ApplyFaderGain(samples, FaderMode.PreFader, reader);
 
@@ -22,24 +33,25 @@ public sealed class SystemAudioCaptureFaderTests
     }
 
     [Fact]
-    public void PostFaderMultipliesByVolumeScalar()
+    public void PreFaderLeavesSamplesUnchangedWhenMuted()
     {
-        var samples = new[] { 0.5f, -0.25f, 1f };
-        var reader = new FakeVolumeReader { Scalar = 0.5f, IsMuted = false };
+        // Windows has already discarded the signal before the loopback tap; there is nothing to recover.
+        var samples = new[] { 0f, 0f, 0f };
+        var reader = new FakeVolumeReader { Scalar = 0.9f, IsMuted = true };
 
-        var result = SystemAudioCapture.ApplyFaderGain(samples, FaderMode.PostFader, reader);
+        var result = SystemAudioCapture.ApplyFaderGain(samples, FaderMode.PreFader, reader);
 
-        Assert.Equal(new[] { 0.25f, -0.125f, 0.5f }, result);
+        Assert.Equal(new[] { 0f, 0f, 0f }, result);
     }
 
     [Fact]
-    public void PostFaderZeroesSamplesWhenMuted()
+    public void PreFaderLeavesSamplesUnchangedAtZeroGain()
     {
         var samples = new[] { 0.5f, -0.25f, 1f };
-        var reader = new FakeVolumeReader { Scalar = 0.9f, IsMuted = true };
+        var reader = new FakeVolumeReader { Scalar = 0f, IsMuted = false };
 
-        var result = SystemAudioCapture.ApplyFaderGain(samples, FaderMode.PostFader, reader);
+        var result = SystemAudioCapture.ApplyFaderGain(samples, FaderMode.PreFader, reader);
 
-        Assert.Equal(new[] { 0f, 0f, 0f }, result);
+        Assert.Equal(new[] { 0.5f, -0.25f, 1f }, result);
     }
 }

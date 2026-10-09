@@ -73,6 +73,8 @@ public partial class MainWindow : Window
 
     private void ClearStreamHistory(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ClearStreamHistory();
 
+    private void ToggleFaderMode(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ToggleFaderMode();
+
     private void RtaAverageDown(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaAveraging(-10);
 
     private void RtaAverageUp(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.AdjustRtaAveraging(10);
