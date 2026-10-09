@@ -13,6 +13,10 @@ public partial class MainWindow : Window
     private readonly SettingsStore _settingsStore;
     private readonly ToolbarSettingsPersister _toolbarPersister;
     private readonly StreamHistoryStore _streamHistoryStore;
+    private readonly UrlLibraryStore _urlLibraryStore;
+    private readonly UrlLibraryViewModel _urlLibraryViewModel = new();
+    private Views.UrlLibraryWindow? _urlLibraryWindow;
+
     public MainWindow()
     {
         Sources.LibVlcRuntime.WarmUp(exception => _logger.Write(exception));
@@ -25,6 +29,9 @@ public partial class MainWindow : Window
         LoudnessView.RangeChanged += (_, range) => Dispatcher.BeginInvoke(() => MeterRail.LoudnessRange = range);
         _settingsStore = new SettingsStore(diagnostic: _logger.Write);
         _streamHistoryStore = new StreamHistoryStore(Path.Combine(AppContext.BaseDirectory, "Data"), _logger.Write);
+        _urlLibraryStore = new UrlLibraryStore(Path.Combine(AppContext.BaseDirectory, "Data"), _logger.Write);
+        _urlLibraryViewModel.EntriesChanged += async (_, _) => await _urlLibraryStore.SaveAsync(_urlLibraryViewModel.Entries.ToArray());
+        _urlLibraryViewModel.UrlActivated += async (_, url) => await UseLibraryUrlAsync(url);
         var provider = new NaudioAudioOutputDeviceProvider();
         _toolbarPersister = new ToolbarSettingsPersister(_settingsStore, _logger.Write);
         var mainViewModel = new MainViewModel(new AnalyzerController(_logger.Write), provider.GetActiveDevices());
@@ -53,7 +60,24 @@ public partial class MainWindow : Window
         {
             viewModel.MeasurementSettings = await _settingsStore.LoadStartupSettingsAsync();
             viewModel.LoadStreamHistory(await _streamHistoryStore.LoadAsync());
+            _urlLibraryViewModel.Load(await _urlLibraryStore.LoadAsync());
         }
+    }
+
+    private void OpenUrlLibrary(object sender, RoutedEventArgs eventArgs)
+    {
+        _urlLibraryWindow ??= new Views.UrlLibraryWindow(_urlLibraryViewModel, _logger.Write) { Owner = this };
+        _urlLibraryWindow.Show();
+        _urlLibraryWindow.Activate();
+    }
+
+    private async Task UseLibraryUrlAsync(string url)
+    {
+        if (DataContext is not MainViewModel viewModel) return;
+        viewModel.StreamUrl = url;
+        viewModel.SelectedSourceMode = SourceMode.Stream;
+        if (viewModel.IsAnalyzing) await viewModel.StopCommand.ExecuteAsync();
+        await viewModel.StartCommand.ExecuteAsync();
     }
 
     private void LoudnessZoomOut(object sender, RoutedEventArgs eventArgs) => (DataContext as MainViewModel)?.ZoomLoudness(1.5);

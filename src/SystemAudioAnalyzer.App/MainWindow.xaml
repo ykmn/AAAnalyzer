@@ -32,7 +32,8 @@
                 <RadioButton Content="{loc:Tr Stream}" GroupName="SourceMode" IsChecked="{Binding IsStreamMode}" FontSize="10" VerticalAlignment="Center" Margin="0,0,10,0" />
                 <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" DisplayMemberPath="Name" Width="480" Height="26" VerticalContentAlignment="Center" FontSize="10" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <Button Content="{Binding FaderModeLabel}" Width="52" Height="26" Margin="10,0,0,0" FontSize="10" FontWeight="Bold"
-                        ToolTip="{loc:Tr FaderTip}" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}" Click="ToggleFaderMode">
+                        ToolTip="{loc:Tr FaderTip}" Visibility="{Binding IsDeviceMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        IsEnabled="{Binding CanToggleFaderMode}" Click="ToggleFaderMode">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource ToolButton}">
                             <Style.Triggers>
@@ -49,6 +50,7 @@
                 <StackPanel Orientation="Horizontal" Visibility="{Binding IsStreamMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <ComboBox IsEditable="True" ItemsSource="{Binding StreamHistory}" Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}" Width="480" Height="26" VerticalContentAlignment="Center" FontSize="10" ToolTip="{loc:Tr UrlTip}" />
                     <Button Style="{StaticResource ToolButton}" Content="✕" Width="26" Height="26" Padding="0" FontSize="12" Margin="4,0,0,0" ToolTip="{loc:Tr ClearTip}" Click="ClearStreamHistory" />
+                    <Button Style="{StaticResource ToolButton}" Content="{loc:Tr UrlLibraryButton}" Height="26" FontSize="10" Margin="4,0,0,0" ToolTip="{loc:Tr UrlLibraryTip}" Click="OpenUrlLibrary" />
                 </StackPanel>
                 <Button Content="{loc:Tr Start}" Command="{Binding StartCommand}" Width="80" Height="26" Margin="10,0,0,0">
                     <Button.Style>
