@@ -15,7 +15,7 @@ public sealed class WaterfallView : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
 
     private const uint Background = 0xFF000000;
-    private static readonly TimeSpan Window = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Window = TimeSpan.FromSeconds(5);
 
     private WaterfallBitmapBuffer? _left;
     private WaterfallBitmapBuffer? _right;
@@ -59,6 +59,7 @@ public sealed class WaterfallView : FrameworkElement
         context.DrawImage(_rightBitmap, layout.RightBounds);
         DrawCursor(context, layout);
         DrawAxis(context, layout);
+        DrawTimeAxis(context, layout);
     }
 
     private static void OnFrameChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
@@ -127,6 +128,30 @@ public sealed class WaterfallView : FrameworkElement
             if (left < lastRight + 6) continue;
             context.DrawText(text, new Point(left, axis.Top + 4));
             lastRight = left + text.Width;
+        }
+    }
+
+    /// <summary>Time-since-now scale in the gutter to the right of each channel: 0 at the top (newest), -Window at the bottom (oldest).</summary>
+    private void DrawTimeAxis(DrawingContext context, WaterfallLayout layout)
+    {
+        var textBrush = ColorBrush(Settings.Analyzer.TextColor);
+        DrawTimeAxisColumn(context, layout.TimeAxisLeftBounds, textBrush);
+        DrawTimeAxisColumn(context, layout.TimeAxisRightBounds, textBrush);
+    }
+
+    private void DrawTimeAxisColumn(DrawingContext context, Rect bounds, Brush textBrush)
+    {
+        const int steps = 5;
+        for (var i = 0; i <= steps; i++)
+        {
+            var fraction = (double)i / steps;
+            var y = bounds.Top + (fraction * bounds.Height);
+            var seconds = fraction * Window.TotalSeconds;
+            var label = i == 0 ? "0s" : $"-{seconds:0}s";
+            context.DrawLine(new Pen(Brushes.DimGray, 1), new Point(bounds.Left, y), new Point(bounds.Left + 4, y));
+            var text = Format(label, 9, textBrush);
+            var top = Math.Clamp(y - (text.Height / 2), bounds.Top, bounds.Bottom - text.Height);
+            context.DrawText(text, new Point(bounds.Left + 6, top));
         }
     }
 
