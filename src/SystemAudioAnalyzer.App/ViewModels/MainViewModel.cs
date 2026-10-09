@@ -13,6 +13,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly SynchronizationContext? _synchronizationContext;
     private SourceMode _selectedSourceMode;
     private OutputDeviceInfo? _selectedDevice;
+    private FaderMode _selectedFaderMode = FaderMode.PreFader;
     private string _streamUrl = string.Empty;
     private string _statusText = Localizer.T("StatusReady");
     private bool _isAnalyzing;
@@ -130,6 +131,43 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (SetField(ref _selectedDevice, value))
             {
                 NotifyValidationChanged();
+            }
+        }
+    }
+
+    public FaderMode SelectedFaderMode
+    {
+        get => _selectedFaderMode;
+        set
+        {
+            if (SetField(ref _selectedFaderMode, value))
+            {
+                OnPropertyChanged(nameof(IsPreFader));
+                OnPropertyChanged(nameof(IsPostFader));
+            }
+        }
+    }
+
+    public bool IsPreFader
+    {
+        get => SelectedFaderMode == FaderMode.PreFader;
+        set
+        {
+            if (value)
+            {
+                SelectedFaderMode = FaderMode.PreFader;
+            }
+        }
+    }
+
+    public bool IsPostFader
+    {
+        get => SelectedFaderMode == FaderMode.PostFader;
+        set
+        {
+            if (value)
+            {
+                SelectedFaderMode = FaderMode.PostFader;
             }
         }
     }
@@ -474,7 +512,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (SelectedSourceMode == SourceMode.Device)
         {
-            selection = new SourceSelection(SourceMode.Device, SelectedDevice, null);
+            selection = new SourceSelection(SourceMode.Device, SelectedDevice, null, SelectedFaderMode);
             return SelectedDevice is not null;
         }
 
