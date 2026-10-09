@@ -51,13 +51,18 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
         try
         {
             await StopInternalAsync().ConfigureAwait(false);
-            _diagnostic?.Invoke($"Start requested: {selection.Mode} {(selection.StreamUri?.ToString() ?? selection.Device?.Name)}");
+            _diagnostic?.Invoke($"Start requested: {selection.Mode} {(selection.StreamUri?.ToString() ?? selection.Device?.Name)} id={selection.Device?.Id}");
             var source = _sourceFactory(selection);
             source.StateChanged += OnSourceStateChanged;
             _source = source;
             await _engine.StartAsync(source, cancellationToken).ConfigureAwait(false);
             _frameCancellation = new CancellationTokenSource();
             _frameTask = ReadFramesAsync(_frameCancellation.Token);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _diagnostic?.Invoke($"Start failed: {exception}");
+            throw;
         }
         finally
         {

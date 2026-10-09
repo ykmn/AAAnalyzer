@@ -14,9 +14,15 @@ public sealed class RtaView : FrameworkElement
 
     private readonly RtaBandAggregator _aggregator = new();
     private IReadOnlyList<RtaBand> _bands = [];
-    private SolidColorBrush _barBrush = new((Color)ColorConverter.ConvertFromString(MeasurementSettings.Default.Rta.BarColor));
-    private SolidColorBrush _peakBrush = new((Color)ColorConverter.ConvertFromString(MeasurementSettings.Default.Rta.PeakCapColor));
-    private SolidColorBrush _targetBrush = new((Color)ColorConverter.ConvertFromString(MeasurementSettings.Default.Rta.TargetBandColor));
+    // Every brush and pen is frozen: a bar is drawn as many small rectangles, and an unfrozen brush shared by thousands
+    // of draw commands makes closing the drawing context cost far more than the drawing itself.
+    private static readonly Brush BackgroundBrush = CreateBrush(Color.FromRgb(8, 11, 16));
+    private static readonly Brush TextBrush = CreateBrush(Color.FromRgb(150, 165, 180));
+    private static readonly Pen GridPen = CreatePen(Color.FromArgb(60, 255, 255, 255), 0.5);
+
+    private SolidColorBrush _barBrush = CreateBrush(MeasurementSettings.Default.Rta.BarColor);
+    private SolidColorBrush _peakBrush = CreateBrush(MeasurementSettings.Default.Rta.PeakCapColor);
+    private SolidColorBrush _targetBrush = CreateBrush(MeasurementSettings.Default.Rta.TargetBandColor);
 
     public AnalysisFrame? Frame { get => (AnalysisFrame?)GetValue(FrameProperty); set => SetValue(FrameProperty, value); }
     public RtaResolution Resolution { get => (RtaResolution)GetValue(ResolutionProperty); set => SetValue(ResolutionProperty, value); }
@@ -73,15 +79,15 @@ public sealed class RtaView : FrameworkElement
 
     protected override void OnRender(DrawingContext context)
     {
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(8, 11, 16)), null, new Rect(new Point(), RenderSize));
+        context.DrawRectangle(BackgroundBrush, null, new Rect(new Point(), RenderSize));
         if (_bands.Count == 0 || ActualWidth <= LeftGutter + RightGutter + 1 || ActualHeight <= BottomGutter + 1) return;
         var rta = Settings.Rta;
         var plot = new Rect(LeftGutter, 0, ActualWidth - LeftGutter - RightGutter, ActualHeight - BottomGutter);
         var displayFloor = SpectrumDisplayScale.EffectiveFloor(Settings.Analyzer.DisplayFloorDb, rta.ScaleTopDb - rta.ScaleRangeDb);
         var range = Math.Max(1, rta.ScaleTopDb - displayFloor);
         double ToY(double db) => plot.Bottom - (Math.Clamp((db - displayFloor) / range, 0, 1) * plot.Height);
-        var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), 0.5);
-        var textBrush = new SolidColorBrush(Color.FromRgb(150, 165, 180));
+        var gridPen = GridPen;
+        var textBrush = TextBrush;
 
         var targetTop = rta.TargetLineDb + (rta.TargetRangeDb / 2);
         var targetBottom = rta.TargetLineDb - (rta.TargetRangeDb / 2);
@@ -138,10 +144,19 @@ public sealed class RtaView : FrameworkElement
         new(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface("Segoe UI"), size, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
-    private static SolidColorBrush CreateBrush(string color)
+    private static SolidColorBrush CreateBrush(string color) => CreateBrush((Color)ColorConverter.ConvertFromString(color));
+
+    private static SolidColorBrush CreateBrush(Color color)
     {
-        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+        var brush = new SolidColorBrush(color);
         brush.Freeze();
         return brush;
+    }
+
+    private static Pen CreatePen(Color color, double thickness)
+    {
+        var pen = new Pen(CreateBrush(color), thickness);
+        pen.Freeze();
+        return pen;
     }
 }

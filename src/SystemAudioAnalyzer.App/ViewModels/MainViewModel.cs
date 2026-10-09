@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Threading;
 using SystemAudioAnalyzer.App.Localization;
 using SystemAudioAnalyzer.App.Services;
 using SystemAudioAnalyzer.App.Settings;
@@ -11,6 +12,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly IAnalyzerController _controller;
     private readonly SynchronizationContext? _synchronizationContext;
+    private readonly Dispatcher? _dispatcher;
+    private AnalysisFrame? _pendingFrame;
+    private int _frameDrainQueued;
     private SourceMode _selectedSourceMode;
     private OutputDeviceInfo? _selectedDevice;
     private FaderMode _selectedFaderMode = FaderMode.PreFader;
@@ -34,6 +38,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         _synchronizationContext = SynchronizationContext.Current;
+        _dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
         Devices = new ReadOnlyCollection<OutputDeviceInfo>((devices ?? throw new ArgumentNullException(nameof(devices))).ToArray());
         _selectedDevice = Devices.FirstOrDefault(device => device.IsDefault) ?? Devices.FirstOrDefault();
         StartCommand = new AsyncCommand(StartAsync, () => CanStart);
@@ -453,26 +458,42 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void OnFrameAvailable(object? sender, AnalysisFrame frame) =>
-        RunOnUi(() =>
+    // Frames arrive faster than a busy UI can draw them. Queueing each one at Normal priority starves input (Normal
+    // outranks Input) and the backlog is replayed in a burst, so only the newest frame is kept and it is applied
+    // below input priority.
+    private void OnFrameAvailable(object? sender, AnalysisFrame frame)
+    {
+        Volatile.Write(ref _pendingFrame, frame);
+        if (Interlocked.Exchange(ref _frameDrainQueued, 1) != 0) return;
+        if (_dispatcher is not null) _dispatcher.BeginInvoke(DispatcherPriority.Render, DrainFrame);
+        else RunOnUi(DrainFrame);
+    }
+
+    private void DrainFrame()
+    {
+        Volatile.Write(ref _frameDrainQueued, 0);
+        if (Interlocked.Exchange(ref _pendingFrame, null) is { } frame) ApplyFrame(frame);
+    }
+
+    private void ApplyFrame(AnalysisFrame frame)
+    {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        LatestFrame = frame;
+        if (IsAnalyzing && RunState is AnalysisRunState.Starting)
         {
-            var started = System.Diagnostics.Stopwatch.GetTimestamp();
-            LatestFrame = frame;
-            if (IsAnalyzing && RunState is AnalysisRunState.Starting)
-            {
-                // Audio is flowing, whatever the source last reported.
-                RunState = AnalysisRunState.Running;
-                StatusText = Localizer.T("StatusRunning");
-            }
-            var uiWork = System.Diagnostics.Stopwatch.GetElapsedTime(started);
-            var now = DateTimeOffset.UtcNow;
-            _frameStatistics.Record(frame.Timestamp, now, frame.DroppedBufferCount, uiWork);
-            if (IsAnalyzing && now - _lastDiagnosticsUpdate >= TimeSpan.FromMilliseconds(250))
-            {
-                _lastDiagnosticsUpdate = now;
-                DiagnosticsText = _frameStatistics.Text;
-            }
-        });
+            // Audio is flowing, whatever the source last reported.
+            RunState = AnalysisRunState.Running;
+            StatusText = Localizer.T("StatusRunning");
+        }
+        var uiWork = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        var now = DateTimeOffset.UtcNow;
+        _frameStatistics.Record(frame.Timestamp, now, frame.DroppedBufferCount, uiWork);
+        if (IsAnalyzing && now - _lastDiagnosticsUpdate >= TimeSpan.FromMilliseconds(250))
+        {
+            _lastDiagnosticsUpdate = now;
+            DiagnosticsText = _frameStatistics.Text;
+        }
+    }
 
     private void OnSourceStateChanged(object? sender, AudioSourceStateChangedEventArgs eventArgs) =>
         RunOnUi(() =>

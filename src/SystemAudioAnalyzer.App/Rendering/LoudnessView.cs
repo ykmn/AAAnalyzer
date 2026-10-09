@@ -9,6 +9,13 @@ public sealed class LoudnessView : FrameworkElement
     public static readonly DependencyProperty FrameProperty = DependencyProperty.Register(nameof(Frame), typeof(AnalysisFrame), typeof(LoudnessView), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnFrameChanged));
     private readonly LoudnessHistory _history = new(TimeSpan.FromSeconds(43_200));
 
+    // The series is one line segment per history point (thousands per frame), so its pens are frozen and shared by
+    // colour instead of being created per segment.
+    private static readonly Brush BackgroundBrush = Freeze(new SolidColorBrush(Color.FromRgb(8, 11, 16)));
+    private static readonly Pen GridPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromArgb(90, 255, 255, 255))), 0.5));
+    private const int MaximumCachedPens = 1024;
+    private readonly Dictionary<Color, Pen> _seriesPens = [];
+
     public AnalysisFrame? Frame { get => (AnalysisFrame?)GetValue(FrameProperty); set => SetValue(FrameProperty, value); }
     public MeasurementSettings Settings { get => (MeasurementSettings)GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
 
@@ -27,7 +34,7 @@ public sealed class LoudnessView : FrameworkElement
 
     protected override void OnRender(DrawingContext context)
     {
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(8, 11, 16)), null, new Rect(new Point(), RenderSize));
+        context.DrawRectangle(BackgroundBrush, null, new Rect(new Point(), RenderSize));
         var now = DateTimeOffset.Now;
         var points = _history.GetVisiblePoints(now);
         var visibleDuration = TimeSpan.FromSeconds(Math.Clamp(Settings.Loudness.HistorySeconds, 15, 43_200));
@@ -39,7 +46,7 @@ public sealed class LoudnessView : FrameworkElement
         var (minimum, maximum) = range.Value;
         if (_lastRange != range) { _lastRange = range; RangeChanged?.Invoke(this, range.Value); }
         var plotBottom = PlotBottom;
-        var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)), 0.5);
+        var gridPen = GridPen;
         var timeStep = AxisTicks.LoudnessTimeStep(visibleDuration.TotalSeconds);
         foreach (var tick in AxisTicks.TimeTicks(now, visibleDuration, timeStep))
         {
@@ -110,9 +117,22 @@ public sealed class LoudnessView : FrameworkElement
             var secondsAgo = (now - points[index].Timestamp).TotalSeconds;
             if (!float.IsFinite(value.Value)) { previous = null; continue; }
             var current = new Point(ActualWidth * (1 - secondsAgo / visibleDuration.TotalSeconds), Map(value.Value, min, max));
-            if (previous is not null) context.DrawLine(new Pen(new SolidColorBrush(ColorGradient.Sample(Settings.Loudness.GradientStops, value.Value)), 1.5), previous.Value, current);
+            if (previous is not null) context.DrawLine(SeriesPen(ColorGradient.Sample(Settings.Loudness.GradientStops, value.Value)), previous.Value, current);
             previous = current;
         }
+    }
+
+    private Pen SeriesPen(Color color)
+    {
+        if (_seriesPens.TryGetValue(color, out var pen)) return pen;
+        if (_seriesPens.Count >= MaximumCachedPens) _seriesPens.Clear();
+        return _seriesPens[color] = Freeze(new Pen(Freeze(new SolidColorBrush(color)), 1.5));
+    }
+
+    private static T Freeze<T>(T freezable) where T : System.Windows.Freezable
+    {
+        freezable.Freeze();
+        return freezable;
     }
 
     private static readonly TimeSpan MaxSampleGap = TimeSpan.FromSeconds(1.5);
