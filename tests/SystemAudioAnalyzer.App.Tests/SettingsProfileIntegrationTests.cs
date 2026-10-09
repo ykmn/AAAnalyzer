@@ -87,7 +87,7 @@ public sealed class SettingsProfileIntegrationTests
 
     private sealed class UnsupportedCaptureFactory : IAudioCaptureFactory
     {
-        public IAudioCapture Create(OutputDeviceInfo device) => throw new NotSupportedException();
+        public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode = default) => throw new NotSupportedException();
     }
 
     private sealed class FakeSource : IAudioSource
