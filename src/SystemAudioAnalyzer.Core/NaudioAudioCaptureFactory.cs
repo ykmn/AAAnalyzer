@@ -12,12 +12,19 @@ public sealed class NaudioAudioCaptureFactory : IAudioCaptureFactory
         try
         {
             var endpoint = enumerator.GetDevice(device.Id);
-            return new SystemAudioCapture(endpoint, enumerator);
+            var volumeReader = new DefaultVolumeReader();
+            return new SystemAudioCapture(endpoint, enumerator, FaderMode.PreFader, volumeReader);
         }
         catch
         {
             enumerator.Dispose();
             throw;
         }
+    }
+
+    private sealed class DefaultVolumeReader : IEndpointVolumeReader
+    {
+        public float Scalar => 1f;
+        public bool IsMuted => false;
     }
 }
