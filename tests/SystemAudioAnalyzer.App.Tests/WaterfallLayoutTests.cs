@@ -13,8 +13,8 @@ public sealed class WaterfallLayoutTests
     {
         var layout = WaterfallLayout.Calculate(width, height);
 
-        Assert.Equal(width, layout.LeftBounds.Width);
-        Assert.Equal(width, layout.RightBounds.Width);
+        Assert.Equal(width - WaterfallLayout.TimeAxisWidth, layout.LeftBounds.Width);
+        Assert.Equal(width - WaterfallLayout.TimeAxisWidth, layout.RightBounds.Width);
         Assert.Equal(0, layout.LeftBounds.X);
         Assert.Equal(0, layout.RightBounds.X);
         Assert.Equal(layout.LeftBounds.Height, layout.RightBounds.Height);
