@@ -109,7 +109,7 @@ public sealed class AudioAnalysisEngine : IAsyncDisposable
                 ?? throw new InvalidOperationException("No active audio output device is available.");
         }
 
-        return StartAsync(new AudioCaptureSource(_captureFactory.Create(selectedDevice)), selectedDevice);
+        return StartAsync(new AudioCaptureSource(_captureFactory.Create(selectedDevice, FaderMode.PreFader)), selectedDevice);
     }
 
     public Task StartAsync(IAudioSource source, CancellationToken cancellationToken = default)

@@ -149,7 +149,7 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
     private static IAudioSource CreateSource(SourceSelection selection) => selection.Mode switch
     {
         SourceMode.Device when selection.Device is not null =>
-            new AudioCaptureSource(new NaudioAudioCaptureFactory().Create(selection.Device)),
+            new AudioCaptureSource(new NaudioAudioCaptureFactory().Create(selection.Device, selection.FaderMode)),
         SourceMode.Stream when selection.StreamUri is not null =>
             new LibVlcAudioSource(selection.StreamUri, new LibVlcPlayer()),
         _ => throw new InvalidOperationException("The selected audio source is incomplete."),

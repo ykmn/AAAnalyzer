@@ -172,7 +172,7 @@ public sealed class AudioAnalysisEngineTests
 
     private sealed class FakeCaptureFactory(FakeCapture capture) : IAudioCaptureFactory
     {
-        public IAudioCapture Create(OutputDeviceInfo device) => capture;
+        public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode) => capture;
     }
 
     private sealed class FakeCapture : IAudioCapture

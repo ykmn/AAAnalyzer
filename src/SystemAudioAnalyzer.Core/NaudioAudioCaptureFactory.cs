@@ -4,7 +4,7 @@ namespace SystemAudioAnalyzer.Core;
 
 public sealed class NaudioAudioCaptureFactory : IAudioCaptureFactory
 {
-    public IAudioCapture Create(OutputDeviceInfo device)
+    public IAudioCapture Create(OutputDeviceInfo device, FaderMode faderMode)
     {
         ArgumentNullException.ThrowIfNull(device);
 
@@ -12,7 +12,7 @@ public sealed class NaudioAudioCaptureFactory : IAudioCaptureFactory
         try
         {
             var endpoint = enumerator.GetDevice(device.Id);
-            return new SystemAudioCapture(endpoint, enumerator);
+            return new SystemAudioCapture(endpoint, enumerator, faderMode, new NaudioEndpointVolumeReader(endpoint));
         }
         catch
         {

@@ -8,12 +8,16 @@ public sealed class SystemAudioCapture : IAudioCapture
     private readonly MMDevice _device;
     private readonly MMDeviceEnumerator _enumerator;
     private readonly WasapiLoopbackCapture _capture;
+    private readonly FaderMode _faderMode;
+    private readonly IEndpointVolumeReader _volumeReader;
     private bool _disposed;
 
-    internal SystemAudioCapture(MMDevice device, MMDeviceEnumerator enumerator)
+    internal SystemAudioCapture(MMDevice device, MMDeviceEnumerator enumerator, FaderMode faderMode, IEndpointVolumeReader volumeReader)
     {
         _device = device ?? throw new ArgumentNullException(nameof(device));
         _enumerator = enumerator ?? throw new ArgumentNullException(nameof(enumerator));
+        _faderMode = faderMode;
+        _volumeReader = volumeReader ?? throw new ArgumentNullException(nameof(volumeReader));
         _capture = new WasapiLoopbackCapture(_device);
         _capture.DataAvailable += OnDataAvailable;
         _capture.RecordingStopped += OnRecordingStopped;
@@ -61,8 +65,28 @@ public sealed class SystemAudioCapture : IAudioCapture
         }
 
         var samples = PcmSampleConverter.Convert(eventArgs.Buffer.AsSpan(0, eventArgs.BytesRecorded), _capture.WaveFormat);
+        samples = ApplyFaderGain(samples, _faderMode, _volumeReader);
         var format = new AudioFormat(_capture.WaveFormat.SampleRate, _capture.WaveFormat.Channels);
         SamplesAvailable?.Invoke(this, new AudioSamplesAvailableEventArgs(samples, format));
+    }
+
+    /// <summary>Scales the buffer in place and returns it for post-fader mode, applying the master-volume
+    /// gain (muted audio becomes silence rather than merely attenuated, matching what a listener actually
+    /// hears); pre-fader mode returns the buffer untouched.</summary>
+    internal static float[] ApplyFaderGain(float[] samples, FaderMode faderMode, IEndpointVolumeReader volumeReader)
+    {
+        if (faderMode == FaderMode.PreFader)
+        {
+            return samples;
+        }
+
+        var gain = volumeReader.IsMuted ? 0f : volumeReader.Scalar;
+        for (var i = 0; i < samples.Length; i++)
+        {
+            samples[i] *= gain;
+        }
+
+        return samples;
     }
 
     private void OnRecordingStopped(object? sender, StoppedEventArgs eventArgs)
