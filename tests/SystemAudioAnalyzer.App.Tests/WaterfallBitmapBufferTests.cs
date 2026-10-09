@@ -64,14 +64,15 @@ public sealed class WaterfallBitmapBufferTests
     }
 
     [Fact]
-    public void LongGapsFillTheWholeBufferWithTheLatestRow()
+    public void LongGapsLeaveBackgroundBelowTheLatestRow()
     {
         var buffer = new WaterfallBitmapBuffer(3, 4, TimeSpan.FromSeconds(10), Black);
         buffer.Append(Start, Row(0xFF111111));
 
         buffer.Append(Start.AddSeconds(60), Row(0xFF222222));
 
-        Assert.All(Enumerable.Range(0, 4), line => Assert.Equal(0xFF222222u, RowColor(buffer, line)));
+        Assert.Equal(0xFF222222u, RowColor(buffer, 0));
+        Assert.All(Enumerable.Range(1, 3), line => Assert.Equal(Black, RowColor(buffer, line)));
     }
 
     [Fact]

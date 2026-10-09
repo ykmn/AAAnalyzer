@@ -103,6 +103,8 @@ public sealed class LoudnessView : FrameworkElement
         Point? previous = null;
         for (var index = 0; index < points.Count; index++)
         {
+            // A long pause between samples means analysis was stopped: leave a gap instead of bridging it.
+            if (index > 0 && points[index].Timestamp - points[index - 1].Timestamp > MaxSampleGap) previous = null;
             var value = select(points[index]);
             if (!value.HasValue) { previous = null; continue; }
             var secondsAgo = (now - points[index].Timestamp).TotalSeconds;
@@ -113,7 +115,9 @@ public sealed class LoudnessView : FrameworkElement
         }
     }
 
-    private const double TopGutter = WorkspaceLayout.LoudnessPlotTopGutter;
+    private static readonly TimeSpan MaxSampleGap = TimeSpan.FromSeconds(1.5);
+
+    private const double TopGutter =WorkspaceLayout.LoudnessPlotTopGutter;
 
     private double PlotBottom => ActualHeight - WorkspaceLayout.PlotBottomReserve;
 

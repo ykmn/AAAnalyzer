@@ -10,8 +10,8 @@ install: no driver, no virtual audio cable.
 
 ### Audio sources
 
-- **Device** — the system mix of the selected output device via WASAPI loopback. Playback on speakers or headphones is not interrupted. ASIO is not supported!
-- **Stream** — an HTTP/HTTPS Icecast or HLS (`.m3u8`) URL, decoded by LibVLC.
+- **Device** — the system mix of the selected output device via WASAPI loopback. Playback on speakers or headphones is not interrupted. ASIO is not supported! A **Pre/Post fader** toggle chooses whether the system volume of the output device affects the measured level.
+- **Stream** — an HTTP/HTTPS Icecast or HLS (`.m3u8`) URL, decoded by LibVLC. A built-in URL library stores stream addresses and exports them to `.m3u8`.
 
 ### Level meter panel (left)
 
@@ -21,7 +21,7 @@ install: no driver, no virtual audio cable.
 
 ### Modes (tabs)
 
-- **Waterfall** — stereo waterfall: left channel on top, right channel at the bottom.
+- **Waterfall** — stereo waterfall: left channel on top, right channel at the bottom. After a stop/restart the pause stays as a black gap (the Loudness chart also shows a gap in the line).
 
 ![Waterfall](screenshots/AAAnalyzer-Waterfall.png)
 

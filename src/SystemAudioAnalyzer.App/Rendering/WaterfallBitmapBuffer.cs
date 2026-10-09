@@ -3,6 +3,8 @@ namespace SystemAudioAnalyzer.App.Rendering;
 /// <summary>BGRA pixel buffer for one waterfall channel; new rows enter at the top and older rows move down.</summary>
 public sealed class WaterfallBitmapBuffer
 {
+    private static readonly TimeSpan MaxRowGap = TimeSpan.FromSeconds(1.5);
+
     private readonly TimeSpan _window;
     private readonly uint _background;
     private DateTimeOffset? _last;
@@ -33,8 +35,10 @@ public sealed class WaterfallBitmapBuffer
         if (row.Length != Width) throw new ArgumentException("Row length must equal the buffer width.", nameof(row));
         var scroll = 1;
         var scrolled = true;
+        var paused = false;
         if (_last is { } last)
         {
+            paused = timestamp - last > MaxRowGap;
             _carry += Math.Max(0d, (timestamp - last).TotalSeconds) / _window.TotalSeconds * Height;
             scroll = (int)Math.Floor(_carry);
             if (scroll < 1)
@@ -57,7 +61,9 @@ public sealed class WaterfallBitmapBuffer
 
         for (var line = 0; line < Math.Max(1, scroll); line++)
         {
-            row.CopyTo(Pixels.AsSpan(line * Width, Width));
+            // After a pause (analysis stopped) only the newest line carries data; the gap stays background.
+            if (paused && line > 0) Pixels.AsSpan(line * Width, Width).Fill(_background);
+            else row.CopyTo(Pixels.AsSpan(line * Width, Width));
         }
 
         return scrolled;
