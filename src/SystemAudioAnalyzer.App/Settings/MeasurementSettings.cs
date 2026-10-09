@@ -29,17 +29,21 @@ public sealed record AnalyzerSettings([property: JsonRequired] double DisplayFlo
     public AnalyzerFrequencyScale FrequencyScale { get; init; } = AnalyzerFrequencyScale.Linear;
     public AnalyzerAmplitudeScale AmplitudeScale { get; init; } = AnalyzerAmplitudeScale.Logarithmic;
     public double Gain { get; init; } = 1;
+    /// <summary>Top of the shared horizontal frequency scale (Analyzer, Waterfall, RTA).</summary>
+    public double MaxFrequencyHz { get; init; } = 24_000;
 }
 
 public sealed record WaterfallSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] double DisplayOffsetDb)
 {
     public ImmutableArray<ColorStop> GradientStops { get; init; } = [new(-110, "#000000"), new(-80, "#2F6FD6"), new(-55, "#2FA84F"), new(-45, "#E0C93A"), new(-25, "#D6392F")];
+    /// <summary>Length of the scrolling time window shown vertically.</summary>
+    public double WindowSeconds { get; init; } = 20;
 
     public bool Equals(WaterfallSettings? other) => other is not null
-        && DisplayFloorDb.Equals(other.DisplayFloorDb) && DisplayOffsetDb.Equals(other.DisplayOffsetDb)
+        && DisplayFloorDb.Equals(other.DisplayFloorDb) && DisplayOffsetDb.Equals(other.DisplayOffsetDb) && WindowSeconds.Equals(other.WindowSeconds)
         && ColorStopEquality.Equals(GradientStops, other.GradientStops);
 
-    public override int GetHashCode() => HashCode.Combine(DisplayFloorDb, DisplayOffsetDb, ColorStopEquality.GetHashCode(GradientStops));
+    public override int GetHashCode() => HashCode.Combine(DisplayFloorDb, DisplayOffsetDb, WindowSeconds, ColorStopEquality.GetHashCode(GradientStops));
 }
 
 public sealed record MeterSettings([property: JsonRequired] double DisplayRangeDb, [property: JsonRequired] string MeterColor, [property: JsonRequired] string OverloadColor)

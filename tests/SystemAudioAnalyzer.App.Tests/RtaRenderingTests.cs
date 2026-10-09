@@ -1,4 +1,5 @@
 using SystemAudioAnalyzer.App.Rendering;
+using SystemAudioAnalyzer.App.Settings;
 using SystemAudioAnalyzer.App.ViewModels;
 using SystemAudioAnalyzer.Core;
 
@@ -61,7 +62,7 @@ public sealed class RtaRenderingTests
     public void CursorPositionUsesEqualRelativeCoordinatesInBothStereoPanels()
     {
         var layout = WaterfallLayout.Calculate(800, 300);
-        var normalized = FrequencyScale.ToNormalized(1_000);
+        var normalized = FrequencyScale.ToNormalized(1_000, AnalyzerFrequencyScale.Logarithmic, 20_000);
 
         var leftX = layout.LeftBounds.Left + (layout.LeftBounds.Width * normalized);
         var rightX = layout.RightBounds.Left + (layout.RightBounds.Width * normalized);
