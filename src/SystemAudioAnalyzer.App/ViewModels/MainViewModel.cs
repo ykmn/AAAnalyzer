@@ -151,8 +151,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string FaderModeLabel => IsPreFader ? Localizer.T("FaderPre") : Localizer.T("FaderPost");
 
-    public void ToggleFaderMode() =>
+    public void ToggleFaderMode()
+    {
+        if (!CanToggleFaderMode) return;
         SelectedFaderMode = SelectedFaderMode == FaderMode.PreFader ? FaderMode.PostFader : FaderMode.PreFader;
+    }
 
     public bool IsPreFader
     {
@@ -199,9 +202,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 NotifyValidationChanged();
                 StopCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(CanToggleFaderMode));
             }
         }
     }
+
+    public bool CanToggleFaderMode => !IsAnalyzing;
 
     public bool CanStart => !IsAnalyzing && TryCreateSelection(out _);
 
