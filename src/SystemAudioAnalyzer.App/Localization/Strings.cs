@@ -18,6 +18,7 @@ internal static class Strings
         ["ClearTip"] = ("Clear the URL history", "Очистить историю адресов"),
         ["UrlTip"] = ("Stream URL; the list holds the last 60 opened", "Адрес потока; в списке — последние 60 открытых"),
         ["UrlLibraryTip"] = ("Open the URL library", "Открыть библиотеку ссылок"),
+        ["UrlLibraryButton"] = ("LIBRARY", "БИБЛИОТЕКА"),
         ["UrlLibraryTitle"] = ("URL Library", "Библиотека ссылок"),
         ["UrlLibraryName"] = ("Name", "Название"),
         ["UrlLibraryUrl"] = ("URL", "Адрес"),
