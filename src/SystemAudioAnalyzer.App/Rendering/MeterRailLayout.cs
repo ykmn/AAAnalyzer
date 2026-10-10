@@ -95,7 +95,7 @@ public sealed record MeterRailLayout(Rect LeftMaximum, Rect RightMaximum, Rect L
 
     public static MeterRailLayout Calculate(double width, double height)
     {
-        const double edge = 2d, scaleWidth = 26d, gap = 2d, lufsGap = 4d, lufsWidth = 14d, lufsScaleWidth = 22d;
+        const double edge = 2d, scaleWidth = 36d, gap = 2d, lufsGap = 4d, lufsWidth = 14d, lufsScaleWidth = 22d;
         const double rowHeight = 14d, peakRowHeight = 12d, overloadHeight = 8d, readoutHeight = 22d;
         const double bottomReserve = WorkspaceLayout.PlotBottomReserve;
         var fixedWidth = (edge * 2) + scaleWidth + (gap * 2) + lufsGap + lufsWidth + lufsScaleWidth;

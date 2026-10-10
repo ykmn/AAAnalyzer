@@ -31,6 +31,10 @@ public sealed record AnalyzerSettings([property: JsonRequired] double DisplayFlo
     public double Gain { get; init; } = 1;
     /// <summary>Top of the shared horizontal frequency scale (Analyzer, Waterfall, RTA).</summary>
     public double MaxFrequencyHz { get; init; } = 24_000;
+    /// <summary>Output device that plays an analysed stream (URL source); null = the system default device.</summary>
+    public string? PlaybackDeviceId { get; init; }
+    /// <summary>Delay of stream playback and analysis together, smoothing network jitter.</summary>
+    public int PlaybackBufferMs { get; init; } = 300;
 }
 
 public sealed record WaterfallSettings([property: JsonRequired] double DisplayFloorDb, [property: JsonRequired] double DisplayOffsetDb)

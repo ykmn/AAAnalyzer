@@ -560,7 +560,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (TryGetStreamUri(out var streamUri))
         {
-            selection = new SourceSelection(SourceMode.Stream, null, streamUri);
+            selection = new SourceSelection(SourceMode.Stream, null, streamUri, PlaybackDeviceId: MeasurementSettings.Analyzer.PlaybackDeviceId, PlaybackBufferMs: MeasurementSettings.Analyzer.PlaybackBufferMs);
             return true;
         }
 

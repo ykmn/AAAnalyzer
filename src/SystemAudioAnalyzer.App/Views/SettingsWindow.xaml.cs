@@ -52,24 +52,32 @@ public partial class SettingsWindow : Window
         if (LanguageBox.SelectedValue is AppLanguage language) Localizer.Instance.Language = language;
     }
 
-    private void Accept(object sender, RoutedEventArgs eventArgs)
+    // OK and Apply also write the settings to the config file (the default profile); Save is for named profiles.
+    private async Task<bool> ApplyAndPersist()
+    {
+        var settings = _viewModel.Apply();
+        SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
+        await _viewModel.PersistAppliedAsync();
+        SaveError.Text = string.Empty;
+        return true;
+    }
+
+    private async void Accept(object sender, RoutedEventArgs eventArgs)
     {
         try
         {
-            var settings = _viewModel.Apply();
-            SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
+            await ApplyAndPersist();
             _completed = true;
             DialogResult = true;
         }
         catch (Exception exception) { ShowError(exception); }
     }
 
-    private void Apply(object sender, RoutedEventArgs eventArgs)
+    private async void Apply(object sender, RoutedEventArgs eventArgs)
     {
         try
         {
-            var settings = _viewModel.Apply();
-            SettingsApplied?.Invoke(this, new SettingsChangedEventArgs(settings));
+            await ApplyAndPersist();
         }
         catch (Exception exception) { ShowError(exception); }
     }

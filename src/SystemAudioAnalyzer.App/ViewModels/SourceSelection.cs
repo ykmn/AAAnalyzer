@@ -1,3 +1,3 @@
 namespace SystemAudioAnalyzer.App.ViewModels;
 
-public sealed record SourceSelection(SourceMode Mode, OutputDeviceInfo? Device, Uri? StreamUri, FaderMode FaderMode = FaderMode.PreFader);
+public sealed record SourceSelection(SourceMode Mode, OutputDeviceInfo? Device, Uri? StreamUri, FaderMode FaderMode = FaderMode.PreFader, string? PlaybackDeviceId = null, int PlaybackBufferMs = 0);

@@ -8,9 +8,9 @@ namespace SystemAudioAnalyzer.App.Tests;
 public sealed class WorkspaceLayoutTests
 {
     [Fact]
-    public void WorkspaceKeepsThePeakRailAtOneHundredThirtyPixels()
+    public void WorkspaceKeepsThePeakRailAtOneHundredFortyPixels()
     {
-        Assert.Equal(130, WorkspaceLayout.PeakRailWidth);
+        Assert.Equal(140, WorkspaceLayout.PeakRailWidth);
     }
 
     [Fact]

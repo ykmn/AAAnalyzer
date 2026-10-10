@@ -135,7 +135,7 @@ public sealed class LoudnessView : FrameworkElement
         return freezable;
     }
 
-    private static readonly TimeSpan MaxSampleGap = TimeSpan.FromSeconds(1.5);
+    private static readonly TimeSpan MaxSampleGap = TimeSpan.FromSeconds(0.4);
 
     private const double TopGutter =WorkspaceLayout.LoudnessPlotTopGutter;
 

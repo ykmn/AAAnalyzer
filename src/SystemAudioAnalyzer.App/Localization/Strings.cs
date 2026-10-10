@@ -79,8 +79,8 @@ internal static class Strings
         ["SaveProfileFailed"] = ("Unable to save the profile. Check access to the application's Data folder.", "Не удалось сохранить профиль. Проверьте доступ к папке Data приложения."),
 
         // Drawn on the instruments
-        ["RailMax"] = ("MAX", "МАКС"),
-        ["RailNow"] = ("NOW", "ТЕК"),
+        ["RailMax"] = ("TP MAX", "TP МАКС"),
+        ["RailNow"] = ("TP NOW", "TP ТЕК"),
         ["CaptionMomentary"] = ("Momentary Loudness", "Мгновенная громкость"),
         ["CaptionShortTerm"] = ("Short-term Loudness", "Кратковременная громкость"),
         ["CaptionIntegrated"] = ("Integrated Loudness", "Интегральная громкость"),
@@ -101,6 +101,9 @@ internal static class Strings
         ["SettingsTitle"] = ("Settings", "Настройки"),
         ["Language"] = ("Language:", "Язык:"),
         ["Preset"] = ("Preset:", "Профиль:"),
+        ["PlaybackDevice"] = ("Stream playback device:", "Устройство воспроизведения потока:"),
+        ["PlaybackBuffer"] = ("Stream playback buffer, ms:", "Буфер воспроизведения потока, мс:"),
+        ["DefaultDevice"] = ("System default", "По умолчанию"),
         ["SaveAs"] = ("Save as:", "Сохранить как:"),
         ["Save"] = ("Save", "Сохранить"),
         ["Delete"] = ("Delete", "Удалить"),

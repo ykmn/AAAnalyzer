@@ -17,7 +17,7 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
     public AnalyzerController(Action<string>? diagnostic = null)
         : this(
             new AudioAnalysisEngine(new NaudioAudioOutputDeviceProvider(), new NaudioAudioCaptureFactory()),
-            CreateSource,
+            selection => CreateSource(selection, diagnostic),
             diagnostic)
     {
     }
@@ -30,11 +30,17 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
         if (diagnostic is not null)
         {
             _engine.Faulted += (_, eventArgs) => diagnostic($"Engine faulted: {eventArgs.Exception}");
+            var lastDropLog = DateTime.MinValue;
             _engine.DiagnosticPublished += (_, entry) =>
             {
-                // Dropped buffers are reported on every frame while overloaded; the status bar already counts them.
-                if (entry.Kind != EngineDiagnosticKind.BufferDropped)
-                    diagnostic($"Engine {entry.Kind}: {entry.Message} device={entry.Device?.Name} format={entry.Format}");
+                // Dropped buffers are reported on every frame while overloaded: log them at most once a second.
+                if (entry.Kind == EngineDiagnosticKind.BufferDropped)
+                {
+                    if (DateTime.UtcNow - lastDropLog < TimeSpan.FromSeconds(1)) return;
+                    lastDropLog = DateTime.UtcNow;
+                }
+
+                diagnostic($"Engine {entry.Kind}: {entry.Message} device={entry.Device?.Name} format={entry.Format}");
             };
         }
     }
@@ -151,12 +157,12 @@ public sealed class AnalyzerController : IAnalyzerController, IAsyncDisposable
     private void OnSourceStateChanged(object? sender, AudioSourceStateChangedEventArgs eventArgs) =>
         SourceStateChanged?.Invoke(this, eventArgs);
 
-    private static IAudioSource CreateSource(SourceSelection selection) => selection.Mode switch
+    private static IAudioSource CreateSource(SourceSelection selection, Action<string>? diagnostic) => selection.Mode switch
     {
         SourceMode.Device when selection.Device is not null =>
             new AudioCaptureSource(new NaudioAudioCaptureFactory().Create(selection.Device, selection.FaderMode)),
         SourceMode.Stream when selection.StreamUri is not null =>
-            new LibVlcAudioSource(selection.StreamUri, new LibVlcPlayer()),
+            new LibVlcAudioSource(selection.StreamUri, new LibVlcPlayer(selection.PlaybackDeviceId, selection.PlaybackBufferMs, diagnostic)),
         _ => throw new InvalidOperationException("The selected audio source is incomplete."),
     };
 

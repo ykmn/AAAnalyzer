@@ -154,6 +154,24 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
         set => Update(analyzer: Current.Analyzer with { MaxFrequencyHz = Math.Clamp(value, FrequencyScale.MinimumHertz + 1, 192_000) });
     }
 
+    public string? AnalyzerPlaybackDeviceId { get => Current.Analyzer.PlaybackDeviceId; set => Update(analyzer: Current.Analyzer with { PlaybackDeviceId = string.IsNullOrEmpty(value) ? null : value }); }
+    public int AnalyzerPlaybackBufferMs { get => Current.Analyzer.PlaybackBufferMs; set => Update(analyzer: Current.Analyzer with { PlaybackBufferMs = Math.Clamp(value, 0, 5000) }); }
+    public IReadOnlyList<SettingsOption<string?>> PlaybackDeviceOptions { get; } = LoadPlaybackDevices();
+
+    private static IReadOnlyList<SettingsOption<string?>> LoadPlaybackDevices()
+    {
+        var options = new List<SettingsOption<string?>> { SettingsOption<string?>.Tr("DefaultDevice", null) };
+        try
+        {
+            options.AddRange(new NaudioAudioOutputDeviceProvider().GetActiveDevices().Select(device => new SettingsOption<string?>(device.Name, device.Id)));
+        }
+        catch (Exception)
+        {
+        }
+
+        return options;
+    }
+
     public double WaterfallFloorDb { get => Current.Waterfall.DisplayFloorDb; set => Update(waterfall: Current.Waterfall with { DisplayFloorDb = value }); }
     public double WaterfallOffsetDb { get => Current.Waterfall.DisplayOffsetDb; set => Update(waterfall: Current.Waterfall with { DisplayOffsetDb = value }); }
 
@@ -243,6 +261,14 @@ public sealed class SettingsDialogViewModel : INotifyPropertyChanged
     {
         ValidateDraft();
         var updated = _catalog.SaveProfile(_selectedProfileId, Current);
+        await _store.SaveCatalogAsync(updated, cancellationToken);
+        SetCatalog(updated);
+    }
+
+    /// <summary>Writes the applied settings to the default profile (the startup config); named profiles stay untouched.</summary>
+    public async Task PersistAppliedAsync(CancellationToken cancellationToken = default)
+    {
+        var updated = _catalog.SaveProfile(_catalog.DefaultProfileId, Current);
         await _store.SaveCatalogAsync(updated, cancellationToken);
         SetCatalog(updated);
     }

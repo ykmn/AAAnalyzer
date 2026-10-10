@@ -216,7 +216,7 @@ public sealed class MeterRailView : FrameworkElement
     }
 
     private static string FormatDb(float value) =>
-        (!float.IsFinite(value) || value <= 0 ? -120d : 20 * Math.Log10(value)) is var db && db <= -99.95 ? "-∞" : db.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+        (!float.IsFinite(value) || value <= 0 ? -120d : 20 * Math.Log10(value)) is var db && db <= -99.95 ? "-∞" : db.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
 
     private static Brush ColorBrush(string color) =>
         new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));

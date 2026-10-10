@@ -19,7 +19,7 @@
     </Window.Resources>
     <Grid Margin="8">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="6" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="140" /><ColumnDefinition Width="6" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
 
         <DockPanel Grid.ColumnSpan="3" Margin="0,0,0,6" Background="#10151C" LastChildFill="False">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,4" VerticalAlignment="Center">
