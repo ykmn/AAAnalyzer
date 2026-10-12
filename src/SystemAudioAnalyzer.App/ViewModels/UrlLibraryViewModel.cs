@@ -10,6 +10,7 @@ public sealed class UrlLibraryViewModel : INotifyPropertyChanged
     private UrlLibraryEntry? _selectedEntry;
     private string _editName = string.Empty;
     private string _editUrl = string.Empty;
+    private string _filterText = string.Empty;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -44,6 +45,41 @@ public sealed class UrlLibraryViewModel : INotifyPropertyChanged
     {
         get => _editUrl;
         set => SetField(ref _editUrl, value ?? string.Empty);
+    }
+
+    public UrlLibraryViewModel()
+    {
+        EntriesView = System.Windows.Data.CollectionViewSource.GetDefaultView(Entries);
+        EntriesView.Filter = MatchesFilter;
+    }
+
+    public ICollectionView EntriesView { get; }
+
+    public string FilterText
+    {
+        get => _filterText;
+        set
+        {
+            if (SetField(ref _filterText, value ?? string.Empty)) EntriesView.Refresh();
+        }
+    }
+
+    private bool MatchesFilter(object item)
+    {
+        if (_filterText.Length == 0 || item is not UrlLibraryEntry entry) return true;
+        var needle = _filterText.Trim();
+        return entry.Name.Contains(needle, StringComparison.CurrentCultureIgnoreCase)
+            || entry.Url.Contains(needle, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Moves <paramref name="source"/> to the position currently held by <paramref name="target"/>.</summary>
+    public void MoveTo(UrlLibraryEntry source, UrlLibraryEntry target)
+    {
+        var from = Entries.IndexOf(source);
+        var to = Entries.IndexOf(target);
+        if (from < 0 || to < 0 || from == to) return;
+        Entries.Move(from, to);
+        RaiseEntriesChanged();
     }
 
     public void Load(IEnumerable<UrlLibraryEntry> entries)

@@ -29,6 +29,42 @@ public partial class UrlLibraryWindow : Window
 
     private void MoveDown(object sender, RoutedEventArgs eventArgs) => _viewModel.MoveDown();
 
+    private System.Windows.Point _dragStart;
+    private UrlLibraryEntry? _dragEntry;
+
+    private UrlLibraryEntry? EntryUnder(DependencyObject? source)
+    {
+        while (source is not null and not System.Windows.Controls.ListViewItem)
+            source = System.Windows.Media.VisualTreeHelper.GetParent(source);
+        return (source as System.Windows.Controls.ListViewItem)?.DataContext as UrlLibraryEntry;
+    }
+
+    private void ListPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs eventArgs)
+    {
+        _dragStart = eventArgs.GetPosition(null);
+        _dragEntry = EntryUnder(eventArgs.OriginalSource as DependencyObject);
+    }
+
+    private void ListPreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs eventArgs)
+    {
+        if (_dragEntry is null || eventArgs.LeftButton != System.Windows.Input.MouseButtonState.Pressed) return;
+        var delta = eventArgs.GetPosition(null) - _dragStart;
+        if (Math.Abs(delta.X) < System.Windows.SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(delta.Y) < System.Windows.SystemParameters.MinimumVerticalDragDistance) return;
+
+        var entry = _dragEntry;
+        _dragEntry = null;
+        System.Windows.DragDrop.DoDragDrop(EntryList, entry, System.Windows.DragDropEffects.Move);
+    }
+
+    private void ListDrop(object sender, System.Windows.DragEventArgs eventArgs)
+    {
+        if (eventArgs.Data.GetData(typeof(UrlLibraryEntry)) is not UrlLibraryEntry source) return;
+        var hit = System.Windows.Media.VisualTreeHelper.HitTest(EntryList, eventArgs.GetPosition(EntryList));
+        if (EntryUnder(hit?.VisualHit) is { } target)
+            _viewModel.MoveTo(source, target);
+    }
+
     private void ActivateSelected(object sender, System.Windows.Input.MouseButtonEventArgs eventArgs)
     {
         if (_viewModel.SelectedEntry is { } entry) _viewModel.Activate(entry);
